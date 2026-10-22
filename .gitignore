@@ -1,0 +1,53 @@
+node_modules/
+.pnp
+.pnp.js
+
+dist/
+build/
+*.tsbuildinfo
+
+.env
+.env.*
+
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+
+coverage/
+.nyc_output/
+
+infra/data/
+infra/postgres-data/
+infra/redis-data/
+infra/rabbitmq-data/
+docker-compose.override.yml
+
+# IDE и редакторы
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# ОС
+.DS_Store
+Thumbs.db
+
+# Временные файлы
+tmp/
+temp/
+*.tmp
+*.pid
+*.seed
+*.pid.lock
+
+# Дампы и локальные данные (например, сохранённые ответы FPL API)
+*.dump
+*.sql.gz
+fpl-samples/

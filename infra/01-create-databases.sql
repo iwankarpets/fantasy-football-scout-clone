@@ -1,0 +1,4 @@
+CREATE DATABASE ingestion;
+CREATE DATABASE analytics;
+CREATE DATABASE users;
+CREATE DATABASE notification;
