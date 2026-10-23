@@ -1,8 +1,15 @@
 import { NestFactory } from '@nestjs/core';
-import { NotificationServiceModule } from './notification-service.module';
+import { createLogger } from '@app/common';
+import { AppModule } from './app.module';
+
+const logger = createLogger('notification-service');
 
 async function bootstrap() {
-  const app = await NestFactory.create(NotificationServiceModule);
-  await app.listen(process.env.port ?? 3000);
+  const app = await NestFactory.createApplicationContext(AppModule, { logger });
+  app.enableShutdownHooks();
 }
-bootstrap();
+
+bootstrap().catch((e) => {
+  logger.fatal(e, 'bootstrap');
+  process.exit(1);
+});

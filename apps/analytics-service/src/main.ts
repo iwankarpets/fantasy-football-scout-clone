@@ -1,8 +1,20 @@
 import { NestFactory } from '@nestjs/core';
-import { AnalyticsServiceModule } from './app.module';
+import { AllExceptionsFilter, createLogger } from '@app/common';
+import { AppModule } from './app.module';
+
+const logger = createLogger('analytics-service');
 
 async function bootstrap() {
-  const app = await NestFactory.create(AnalyticsServiceModule);
-  await app.listen(process.env.port ?? 3000);
+  const app = await NestFactory.create(AppModule, { logger });
+  app.enableShutdownHooks();
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  const port = Number(process.env.PORT ?? 3002);
+  await app.listen(port);
+  logger.log(`Listen port: ${port}`, 'bootstrap');
 }
-bootstrap();
+
+bootstrap().catch((e) => {
+  logger.fatal(e, 'bootstrap');
+  process.exit(1);
+});
