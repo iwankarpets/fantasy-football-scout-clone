@@ -1,8 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { IngestionServiceModule } from './ingestion-service.module';
+import { ConfigService } from '@nestjs/config';
+import { AppModule } from './app.module';
+
 
 async function bootstrap() {
-  const app = await NestFactory.create(IngestionServiceModule);
-  await app.listen(process.env.port ?? 3000);
+  const app = await NestFactory.create(AppModule);
+  // TODO: подключить общий логгер и фильтр исключений из libs/common
+  const port = app.get(ConfigService).getOrThrow<number>('port');
+  await app.listen(port);
 }
 bootstrap();

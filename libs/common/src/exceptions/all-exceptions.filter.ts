@@ -9,10 +9,7 @@ interface HttpReq {
   url?: string;
 }
 
-/**
- * Единый обработчик ошибок для HTTP-сервисов (user-service, analytics-service).
- * Ожидаемые ошибки отдаёт как есть, неожиданные скрывает за общим сообщением.
- */
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('ExceptionFilter');

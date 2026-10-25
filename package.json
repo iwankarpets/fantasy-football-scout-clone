@@ -5,7 +5,11 @@
     "start:analytics": "nest start analytics-service --watch",
     "start:user": "nest start user-service --watch",
     "start:bot": "nest start notification-service --watch",
-    "build:all": "nest build ingestion-service && nest build analytics-service && nest build user-service && nest build notification-service"
+    "build:all": "nest build ingestion-service && nest build analytics-service && nest build user-service && nest build notification-service",
+    "typeorm": "typeorm-ts-node-commonjs -d apps/ingestion-service/src/database/data-source.ts",
+    "ingestion:migration:run": "npm run typeorm -- migration:run",
+    "ingestion:migration:revert": "npm run typeorm -- migration:revert",
+    "ingestion:migration:show": "npm run typeorm -- migration:show"
   },
   "dependencies": {
     "@grammyjs/auto-retry": "^2.0.2",
