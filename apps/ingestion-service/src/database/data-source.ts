@@ -1,6 +1,9 @@
-import 'dotenv/config';
+import { config } from 'dotenv';
 import { join } from 'path';
 import { DataSource } from 'typeorm';
+
+// .env лежит в apps/ingestion-service/, независимо от того, откуда запущена команда
+config({ path: join(__dirname, '..', '..', '.env'), quiet: true });
 
 /**
  * DataSource используется только CLI TypeORM (миграции).

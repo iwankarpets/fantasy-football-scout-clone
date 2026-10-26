@@ -1,5 +1,5 @@
 export const INGESTION_QUEUE = 'ingestion';
- 
+
 /** Имена повторяющихся джобов (BullMQ). */
 export enum JobName {
   SyncBootstrap = 'sync-bootstrap',

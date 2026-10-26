@@ -49,3 +49,14 @@ export class AccessDeniedException extends AppException {
     });
   }
 }
+
+export class UpstreamBadResponseException extends AppException {
+  constructor(service: string, details: string, cause?: unknown) {
+    super(`${service} returned an unexpected response: ${details}`, {
+      code: 'UPSTREAM_BAD_RESPONSE',
+      status: 502,
+      userMessage: 'Сервис вернул некорректный ответ. Попробуйте позже.',
+      cause,
+    });
+  }
+}

@@ -1,5 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { EntityManager, Repository } from 'typeorm';
+import { Player } from '../../database/entities/player.entity';
+import { upsertInChunks } from '../../database/upsert.util';
 
-/** Единственное место доступа к БД для темы "players". */
 @Injectable()
-export class PlayersRepository {}
+export class PlayersRepository {
+  constructor(@InjectRepository(Player) private readonly repo: Repository<Player>) {}
+
+  /** Передайте manager, чтобы выполнить upsert внутри внешней транзакции. */
+  upsertMany(rows: Player[], manager?: EntityManager): Promise<number> {
+    const repo = manager ? manager.getRepository(Player) : this.repo;
+    return upsertInChunks(repo, rows, ['id']);
+  }
+}
