@@ -1,8 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { FixturesRepository } from './fixtures.repository';
+import { EntityManager } from "typeorm/entity-manager/EntityManager.js";
+import { FplFixture } from "../../clients/fpl-api/schemas/fixtures.schema";
+import { FixtureRepository } from "./fixture.repository";
+import { mapFixture } from "./fixture.mapper";
 
-/** Бизнес-логика темы "fixtures". */
 @Injectable()
 export class FixturesService {
-  constructor(private readonly repository: FixturesRepository) {}
+  constructor(private readonly repository: FixtureRepository) {}
+
+  upsertFromApi(items: FplFixture[], manager: EntityManager): Promise<number> {
+    return this.repository.upsertMany(items.map(mapFixture), manager);
+  }
 }
