@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager } from "typeorm/entity-manager/EntityManager.js";
-import { Fixture } from "../../database/entities/fixture.entity";
+import { InjectRepository } from '@nestjs/typeorm';
+import { EntityManager, Repository } from 'typeorm';
+import { Fixture } from '../../database/entities/fixture.entity';
+import { upsertInChunks } from '../../database/upsert.util';
 
 @Injectable()
-export class FixtureRepository {
-  async upsertMany(rows: Partial<Fixture>[], manager: EntityManager): Promise<number> {
-    if (rows.length === 0) return 0;
-    await manager.upsert(Fixture, rows, ['id']);
-    return rows.length;
+export class FixturesRepository {
+  constructor(@InjectRepository(Fixture) private readonly repo: Repository<Fixture>) {}
+
+  /** Передайте manager, чтобы выполнить upsert внутри внешней транзакции. */
+  upsertMany(rows: Fixture[], manager?: EntityManager): Promise<number> {
+    const repo = manager ? manager.getRepository(Fixture) : this.repo;
+    return upsertInChunks(repo, rows, ['id']);
   }
 }

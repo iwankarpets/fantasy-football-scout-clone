@@ -20,4 +20,4 @@ export const fixtureSchema = z.object({
 // а по документу массив stats в базу не берётся.
 
 export const fixturesSchema = z.array(fixtureSchema);
-export type FplFixture = z.infer<typeof fixtureSchema>;
+export type ApiFplFixture = z.infer<typeof fixtureSchema>;

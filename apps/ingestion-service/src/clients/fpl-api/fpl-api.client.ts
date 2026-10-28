@@ -1,12 +1,14 @@
 import { createHash } from 'crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { z } from 'zod';
 import {
   AppException,
   UpstreamBadResponseException,
   UpstreamUnavailableException,
 } from '@app/common'; // TODO: поправьте путь под ваш алиас libs
 import { bootstrapStaticSchema, BootstrapStatic } from './schemas/bootstrap-static.schema';
+import { fixturesSchema, ApiFplFixture } from './schemas/fixtures.schema';
 
 export interface FplResponse<T> {
   data: T;
@@ -40,28 +42,45 @@ export class FplApiClient {
     this.requestDelayMs = config.getOrThrow<number>('fpl.requestDelayMs');
   }
 
-  async getBootstrapStatic(): Promise<FplResponse<BootstrapStatic>> {
-    const { text, hash } = await this.getText('/bootstrap-static/');
+  getBootstrapStatic(): Promise<FplResponse<BootstrapStatic>> {
+    return this.fetchParsed('/bootstrap-static/', 'bootstrap-static', bootstrapStaticSchema);
+  }
 
+  getFixtures(): Promise<FplResponse<ApiFplFixture[]>> {
+    return this.fetchParsed('/fixtures/', 'fixtures', fixturesSchema);
+  }
+
+  // TODO: getElementSummary(id) через fetchParsed(`/element-summary/${id}/`, `element-summary/${id}`, schema)
+
+  /** Запрос + проверка формата: общий шаг для всех публичных методов. */
+  private async fetchParsed<T>(
+    path: string,
+    name: string,
+    schema: z.ZodType<T>,
+  ): Promise<FplResponse<T>> {
+    const { text, hash } = await this.getText(path);
+    return { data: this.parse(name, text, schema), hash };
+  }
+
+  /** JSON.parse + проверка схемой; name нужен только для текста ошибки. */
+  private parse<T>(name: string, text: string, schema: z.ZodType<T>): T {
     let json: unknown;
     try {
       json = JSON.parse(text);
     } catch (cause) {
-      throw new UpstreamBadResponseException(SERVICE, 'bootstrap-static: ответ не является JSON', cause);
+      throw new UpstreamBadResponseException(SERVICE, `${name}: ответ не является JSON`, cause);
     }
 
-    const parsed = bootstrapStaticSchema.safeParse(json);
+    const parsed = schema.safeParse(json);
     if (!parsed.success) {
       const details = parsed.error.issues
         .slice(0, 5)
         .map((i) => `${i.path.join('.')}: ${i.message}`)
         .join('; ');
-      throw new UpstreamBadResponseException(SERVICE, `bootstrap-static: неожиданный формат (${details})`);
+      throw new UpstreamBadResponseException(SERVICE, `${name}: неожиданный формат (${details})`);
     }
-    return { data: parsed.data, hash };
+    return parsed.data;
   }
-
-  // TODO: getFixtures(), getElementSummary(id)
 
   /** GET с повторами на 429, 5xx, таймаут и сетевые ошибки. */
   private async getText(path: string): Promise<{ text: string; hash: string }> {

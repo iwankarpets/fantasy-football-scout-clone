@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { FixturesService } from './fixtures.service';
-import { FixtureRepository } from './fixture.repository';
+import { FixturesRepository } from './fixture.repository';
 
 @Module({
-  providers: [FixtureRepository, FixturesService],
+  providers: [FixturesRepository, FixturesService],
   exports: [FixturesService],
 })
 export class FixturesModule {}
