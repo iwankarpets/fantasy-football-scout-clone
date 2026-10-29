@@ -9,6 +9,7 @@ import {
 } from '@app/common'; // TODO: поправьте путь под ваш алиас libs
 import { bootstrapStaticSchema, BootstrapStatic } from './schemas/bootstrap-static.schema';
 import { fixturesSchema, ApiFplFixture } from './schemas/fixtures.schema';
+import { ApiFplElementSummary, elementSummarySchema } from './schemas/element-summary.schema';
 
 export interface FplResponse<T> {
   data: T;
@@ -50,8 +51,9 @@ export class FplApiClient {
     return this.fetchParsed('/fixtures/', 'fixtures', fixturesSchema);
   }
 
-  // TODO: getElementSummary(id) через fetchParsed(`/element-summary/${id}/`, `element-summary/${id}`, schema)
-
+ getElementSummary(id: number): Promise<FplResponse<ApiFplElementSummary>> {
+  return this.fetchParsed(`/element-summary/${id}/`, `element-summary/${id}`, elementSummarySchema);
+}
   /** Запрос + проверка формата: общий шаг для всех публичных методов. */
   private async fetchParsed<T>(
     path: string,

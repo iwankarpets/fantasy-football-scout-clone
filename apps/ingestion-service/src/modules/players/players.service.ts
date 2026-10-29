@@ -16,4 +16,9 @@ export class PlayersService {
       manager,
     );
   }
+
+  /** id всех игроков: джоба sync-player-history обходит их по одному. */
+  getAllIds(): Promise<number[]> {
+    return this.repository.findAllIds();
+  }
 }

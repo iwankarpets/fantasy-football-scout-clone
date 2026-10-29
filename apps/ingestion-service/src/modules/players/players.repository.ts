@@ -13,4 +13,9 @@ export class PlayersRepository {
     const repo = manager ? manager.getRepository(Player) : this.repo;
     return upsertInChunks(repo, rows, ['id']);
   }
+
+   async findAllIds(): Promise<number[]> {
+    const rows = await this.repo.find({ select: { id: true }, order: { id: 'ASC' } });
+    return rows.map((r) => r.id);
+   }
 }
