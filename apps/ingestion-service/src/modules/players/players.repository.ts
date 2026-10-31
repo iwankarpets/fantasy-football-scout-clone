@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { Player } from '../../database/entities/player.entity';
 import { upsertInChunks } from '../../database/upsert.util';
+import { PlayerBaseline } from '../changes/player-changes.detector';
 
 @Injectable()
 export class PlayersRepository {
@@ -18,4 +19,11 @@ export class PlayersRepository {
     const rows = await this.repo.find({ select: { id: true }, order: { id: 'ASC' } });
     return rows.map((r) => r.id);
    }
+
+
+   async findBaselines(manager?: EntityManager): Promise<Map<number, PlayerBaseline>> {
+    const repo = manager ? manager.getRepository(Player) : this.repo;
+    const rows = await repo.find({ select: { id: true, now_cost: true, status: true, news: true } });
+    return new Map(rows.map((r) => [r.id, r]));
+  }
 }

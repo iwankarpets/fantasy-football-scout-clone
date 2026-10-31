@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
-import { ChangesRepository } from './changes.repository';
-import { ChangesService } from './changes.service';
+import { PlayerChangesRepository } from './player-changes.repository';
+import { PlayerChangesService } from './player-changes.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { PlayerChange } from '../../database/entities/player-change.entity.js';
 
 @Module({
-  providers: [ChangesRepository, ChangesService],
-  exports: [ChangesService],
+  imports: [TypeOrmModule.forFeature([PlayerChange])],
+  providers: [PlayerChangesRepository, PlayerChangesService],
+  exports: [PlayerChangesService],
 })
 export class ChangesModule {}

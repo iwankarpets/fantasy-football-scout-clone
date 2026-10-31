@@ -3,6 +3,7 @@ import { ApiOperation, ApiQuery, ApiResponse, ApiSecurity, ApiTags } from '@nest
 import { SyncBootstrapJob } from '../jobs/sync-bootstrap.job';
 import { InternalApiKeyGuard } from './internal-key.guard';
 import { SyncFixturesJob } from '../jobs/sync-fixtures.job';
+import { SyncPlayerHistoryJob } from '../jobs/sync-player-history.job';
 
 @ApiTags('admin')
 @ApiSecurity('internal-key')
@@ -12,6 +13,7 @@ export class AdminController {
   constructor(
     private readonly syncBootstrap: SyncBootstrapJob,
     private readonly syncFixtures: SyncFixturesJob,
+    private readonly syncPlayerHistory: SyncPlayerHistoryJob,
   ) {}
 
   /** POST /admin/sync/bootstrap?force=true : force=true игнорирует совпадение хэша */
@@ -45,5 +47,19 @@ export class AdminController {
   @ApiResponse({ status: 503, description: 'UPSTREAM_UNAVAILABLE: FPL недоступен после повторов' })
   runFixtures(@Query('force') force?: string) {
     return this.syncFixtures.run({ force: force === 'true' });
+  }
+
+  @Post('sync/player-history')
+  @ApiOperation({ summary: 'Загрузить историю матчей игроков (element-summary) в фоне' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Только первые N игроков (для пробного запуска)',
+  })
+  @ApiResponse({ status: 201, description: 'started: обход запущен, runId для проверки в sync_runs' })
+  @ApiResponse({ status: 403, description: 'ACCESS_DENIED: неверный или отсутствующий x-internal-key' })
+  runPlayerHistory(@Query('limit') limit?: string) {
+    return this.syncPlayerHistory.start({ limit: limit ? Number(limit) : undefined });
   }
 }

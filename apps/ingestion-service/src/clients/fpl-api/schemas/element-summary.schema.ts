@@ -8,7 +8,6 @@ export const elementHistoryItemSchema = z.object({
   round: int,
   opponent_team: int,
   was_home: z.boolean(),
-
   minutes: int,
   starts: int,
   goals_scored: int,
