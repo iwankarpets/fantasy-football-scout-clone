@@ -1,9 +1,11 @@
-import { Controller, Post, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { SyncBootstrapJob } from '../jobs/sync-bootstrap.job';
 import { InternalApiKeyGuard } from './internal-key.guard';
 import { SyncFixturesJob } from '../jobs/sync-fixtures.job';
 import { SyncPlayerHistoryJob } from '../jobs/sync-player-history.job';
+import { DailySnapshotJob } from '../jobs/daily-snapshot.job';
+import { SchedulerService } from '../scheduler/scheduler.service';
 
 @ApiTags('admin')
 @ApiSecurity('internal-key')
@@ -14,6 +16,8 @@ export class AdminController {
     private readonly syncBootstrap: SyncBootstrapJob,
     private readonly syncFixtures: SyncFixturesJob,
     private readonly syncPlayerHistory: SyncPlayerHistoryJob,
+    private readonly dailySnapshot: DailySnapshotJob,
+    private readonly scheduler: SchedulerService
   ) {}
 
   /** POST /admin/sync/bootstrap?force=true : force=true игнорирует совпадение хэша */
@@ -61,5 +65,21 @@ export class AdminController {
   @ApiResponse({ status: 403, description: 'ACCESS_DENIED: неверный или отсутствующий x-internal-key' })
   runPlayerHistory(@Query('limit') limit?: string) {
     return this.syncPlayerHistory.start({ limit: limit ? Number(limit) : undefined });
+  }
+
+  /** POST /admin/snapshot/daily?force=true : force=true заменяет сегодняшний снимок */
+  @Post('snapshot/daily')
+  @ApiOperation({ summary: 'Суточный снимок игроков: цена, статус, владение (читает players, к FPL не ходит)' })
+  @ApiQuery({ name: 'force', required: false, type: Boolean, description: 'true: заменить снимок за сегодня' })
+  @ApiResponse({ status: 201, description: 'success (с count) или skipped (снимок за сегодня уже есть)' })
+  @ApiResponse({ status: 403, description: 'ACCESS_DENIED: неверный или отсутствующий x-internal-key' })
+  runDailySnapshot(@Query('force') force?: string) {
+    return this.dailySnapshot.run({ force: force === 'true' });
+  }
+
+  @Get('schedule')
+  @ApiOperation({ summary: 'Какие задачи стоят в расписании и когда следующий запуск' })
+  getSchedule() {
+    return this.scheduler.list();
   }
 }

@@ -12,6 +12,8 @@ import { FixturesModule } from './modules/fixtures/fixtures.module';
 import { GameweeksModule } from './modules/gameweeks/gameweeks.module';
 import { ChangesModule } from './modules/changes/changes.module';
 import { SyncRunsModule } from './modules/sync-runs/sync-runs.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -33,6 +35,15 @@ import { SyncRunsModule } from './modules/sync-runs/sync-runs.module';
         synchronize: false, // схема только через миграции
       }),
     }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+      connection: {
+        host: config.getOrThrow<string>('redis.host'),
+        port: config.getOrThrow<number>('redis.port'),
+      },
+      }),
+    }),
     FplApiModule,
     JobsModule,
     EventsModule,
@@ -43,6 +54,7 @@ import { SyncRunsModule } from './modules/sync-runs/sync-runs.module';
     GameweeksModule,
     ChangesModule,
     SyncRunsModule,
+    SchedulerModule,
   ],
 })
 export class AppModule {}

@@ -4,6 +4,7 @@ import { EntityManager, Repository } from 'typeorm';
 import { Player } from '../../database/entities/player.entity';
 import { upsertInChunks } from '../../database/upsert.util';
 import { PlayerBaseline } from '../changes/player-changes.detector';
+import { PlayerSnapshotSource } from '../snapshots/player-snapshots.mapper';
 
 @Injectable()
 export class PlayersRepository {
@@ -25,5 +26,18 @@ export class PlayersRepository {
     const repo = manager ? manager.getRepository(Player) : this.repo;
     const rows = await repo.find({ select: { id: true, now_cost: true, status: true, news: true } });
     return new Map(rows.map((r) => [r.id, r]));
+  }
+
+   async findForSnapshot(): Promise<PlayerSnapshotSource[]> {
+      return this.repo.find({
+      select: {
+        id: true,
+        now_cost: true,
+        status: true,
+        chance_of_playing_next_round: true,
+        selected_by_percent: true,
+      },
+      order: { id: 'ASC' },
+    });
   }
 }

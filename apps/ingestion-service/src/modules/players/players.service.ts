@@ -5,6 +5,7 @@ import { PlayersRepository } from './players.repository';
 import { mapPlayer } from './players.mapper';
 import { PlayerChangesService } from '../changes/player-changes.service';
 import { detectPlayerChanges } from '../changes/player-changes.detector';
+import { PlayerSnapshotSource } from '../snapshots/player-snapshots.mapper';
 
 @Injectable()
 export class PlayersService {
@@ -35,4 +36,8 @@ export class PlayersService {
   getAllIds(): Promise<number[]> {
     return this.playerRepository.findAllIds();
   }
+
+ getForSnapshot(): Promise<PlayerSnapshotSource[]> {
+  return this.playerRepository.findForSnapshot();
+}
 }

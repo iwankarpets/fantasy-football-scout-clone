@@ -20,4 +20,7 @@ export default () => ({
     baseUrl: process.env.FPL_API_BASE_URL ?? 'https://fantasy.premierleague.com/api',
     requestDelayMs: parseInt(process.env.FPL_REQUEST_DELAY_MS ?? '1000', 10),
   },
+  scheduler: {
+    enabled: process.env.SCHEDULER_ENABLED === 'true',
+  },
 });
