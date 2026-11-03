@@ -40,4 +40,8 @@ export class PlayersService {
  getForSnapshot(): Promise<PlayerSnapshotSource[]> {
   return this.playerRepository.findForSnapshot();
 }
+
+  getIdsWithNewMatches(days = 3): Promise<number[]> {
+    return this.playerRepository.findIdsWithNewMatches(days);
+  }
 }

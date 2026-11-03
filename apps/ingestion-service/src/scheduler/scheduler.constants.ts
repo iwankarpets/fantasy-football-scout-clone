@@ -5,6 +5,7 @@ export const INGESTION_QUEUE = 'ingestion';
 export const JOB_SYNC_BOOTSTRAP = 'sync-bootstrap';
 export const JOB_SYNC_FIXTURES = 'sync-fixtures';
 export const JOB_DAILY_SNAPSHOT = 'daily-snapshot';
+export const JOB_SYNC_PLAYER_HISTORY = 'sync-player-history';
 
 /** Задачи, которые ходят к FPL: при ошибке (в том числе 403) ждём подольше. */
 const NETWORK_JOB_OPTS: JobsOptions = {
@@ -49,5 +50,12 @@ export const SCHEDULES: ScheduleDef[] = [
     jobName: JOB_DAILY_SNAPSHOT,
     repeat: { pattern: '0 0 6 * * *', tz: 'UTC' },
     opts: LOCAL_JOB_OPTS,
+  },
+  {
+    id: 'sync-player-history-0700-utc',
+    jobName: JOB_SYNC_PLAYER_HISTORY,
+    repeat: { pattern: '0 0 7 * * *', tz: 'UTC' },
+    // attempts: 1 — неудачный обход не повторяем: следующий запуск догрузит недостающее
+    opts: { attempts: 1, removeOnComplete: 50, removeOnFail: 100 },
   },
 ];

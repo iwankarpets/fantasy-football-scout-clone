@@ -6,13 +6,17 @@ import { SyncRunsService } from '../modules/sync-runs/sync-runs.service';
 
 const ENDPOINT = 'element-summary';
 /** Столько ошибок подряд считаем признаком блокировки или сбоя FPL и останавливаемся */
-const MAX_CONSECUTIVE_FAILURES = 5;
+const MAX_CONSECUTIVE_FAILURES = 3;
 
 export interface SyncPlayerHistoryOptions {
-  /** Только эти игроки (для проверки на паре id) */
+  /** Только эти игроки (для проверки на паре id или догрузки пропущенных) */
   playerIds?: number[];
   /** Первые N игроков: удобно для пробного запуска */
   limit?: number;
+  /** true: только игроки с завершёнными матчами, которых ещё нет в player_gameweek_stats */
+  onlyNewMatches?: boolean;
+  /** Окно для onlyNewMatches, в днях (по умолчанию 3) */
+  days?: number;
 }
 
 /**
@@ -31,22 +35,49 @@ export class SyncPlayerHistoryJob {
     private readonly stats: PlayerGameweekStatsService,
   ) {}
 
-  /** Создаёт запись в sync_runs, запускает обход в фоне и сразу возвращает runId. */
+  /** Для админки: запускает обход в фоне и сразу возвращает runId. */
   async start(opts: SyncPlayerHistoryOptions = {}): Promise<{ runId: number; status: 'started' }> {
     if (this.running) throw new Error('sync-player-history уже выполняется');
     this.running = true;
 
-    const runId = await this.syncRuns.start(ENDPOINT);
-    void this.execute(runId, opts).finally(() => {
+    try {
+      const runId = await this.syncRuns.start(ENDPOINT);
+      void this.execute(runId, opts).finally(() => {
+        this.running = false;
+      });
+      return { runId, status: 'started' };
+    } catch (e) {
       this.running = false;
-    });
-    return { runId, status: 'started' };
+      throw e;
+    }
+  }
+
+  /** Для очереди: выполняет обход и ждёт окончания, чтобы concurrency: 1 защищал от наложения запросов. */
+  async run(opts: SyncPlayerHistoryOptions = {}): Promise<{ runId: number }> {
+    if (this.running) throw new Error('sync-player-history уже выполняется');
+    this.running = true;
+    try {
+      const runId = await this.syncRuns.start(ENDPOINT);
+      await this.execute(runId, opts);
+      return { runId };
+    } finally {
+      this.running = false;
+    }
+  }
+
+  private async resolveIds(opts: SyncPlayerHistoryOptions): Promise<number[]> {
+    let ids: number[];
+    if (opts.playerIds) ids = opts.playerIds;
+    else if (opts.onlyNewMatches) ids = await this.players.getIdsWithNewMatches(opts.days ?? 3);
+    else ids = await this.players.getAllIds();
+
+    return opts.limit ? ids.slice(0, opts.limit) : ids;
   }
 
   private async execute(runId: number, opts: SyncPlayerHistoryOptions): Promise<void> {
     try {
-      let ids = opts.playerIds ?? (await this.players.getAllIds());
-      if (opts.limit) ids = ids.slice(0, opts.limit);
+      const ids = await this.resolveIds(opts);
+      if (ids.length === 0) this.logger.log('Нет игроков для загрузки истории');
 
       let rows = 0;
       let consecutiveFailures = 0;

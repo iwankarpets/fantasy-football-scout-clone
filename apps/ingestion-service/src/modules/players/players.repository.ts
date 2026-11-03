@@ -40,4 +40,21 @@ export class PlayersRepository {
       order: { id: 'ASC' },
     });
   }
+
+  async findIdsWithNewMatches(days: number): Promise<number[]> {
+    const rows: { id: number }[] = await this.repo.query(
+    `SELECT DISTINCT p.id
+       FROM players p
+       JOIN fixtures f
+         ON f.finished AND f.finished_provisional
+        AND f.kickoff_time > now() - make_interval(days => $1::int)
+        AND (f.team_h = p.team OR f.team_a = p.team)
+       LEFT JOIN player_gameweek_stats s
+         ON s.element = p.id AND s.fixture = f.id
+      WHERE s.id IS NULL
+      ORDER BY p.id`,
+    [days],
+  );
+  return rows.map((r) => r.id);
+}
 }
