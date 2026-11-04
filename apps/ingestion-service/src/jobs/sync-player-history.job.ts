@@ -1,5 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { DataSource } from 'typeorm';
+import { SnapshotReadyV1 } from '@app/contracts';
 import { FplApiClient, sleep } from '../clients/fpl-api/fpl-api.client';
+import { OutboxService } from '../events/outbox/outbox.service';
+import { GameweeksService } from '../modules/gameweeks/gameweeks.service';
 import { PlayerGameweekStatsService } from '../modules/player-gameweek-stats/player-gameweek-stats.service';
 import { PlayersService } from '../modules/players/players.service';
 import { SyncRunsService } from '../modules/sync-runs/sync-runs.service';
@@ -30,9 +35,12 @@ export class SyncPlayerHistoryJob {
 
   constructor(
     private readonly fpl: FplApiClient,
+    private readonly dataSource: DataSource,
     private readonly syncRuns: SyncRunsService,
     private readonly players: PlayersService,
     private readonly stats: PlayerGameweekStatsService,
+    private readonly outbox: OutboxService,
+    private readonly gameweeks: GameweeksService,
   ) {}
 
   /** Для админки: запускает обход в фоне и сразу возвращает runId. */
@@ -74,8 +82,32 @@ export class SyncPlayerHistoryJob {
     return opts.limit ? ids.slice(0, opts.limit) : ids;
   }
 
+  /** Финальный статус и snapshot.ready (если что-то загрузили) в одной транзакции. */
+  private async complete(
+    runId: number,
+    patch: { status: 'success' | 'failed'; itemsCount: number; error?: string },
+    correlationId: string,
+  ): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      await this.syncRuns.finish(runId, patch, manager);
+      if (patch.itemsCount > 0) {
+        await this.outbox.add(
+          SnapshotReadyV1,
+          {
+            gameweek_number: await this.gameweeks.currentOrNextNumber(manager),
+            updated: ['player_history'],
+            sync_run_id: runId,
+          },
+          manager,
+          { correlationId },
+        );
+      }
+    });
+  }
+
   private async execute(runId: number, opts: SyncPlayerHistoryOptions): Promise<void> {
     try {
+      const correlationId = randomUUID();
       const ids = await this.resolveIds(opts);
       if (ids.length === 0) this.logger.log('Нет игроков для загрузки истории');
 
@@ -106,14 +138,14 @@ export class SyncPlayerHistoryJob {
 
       if (aborted) {
         const error = `Остановлено: ${MAX_CONSECUTIVE_FAILURES} ошибок подряд. Не загружены: ${failed.join(', ')}`;
-        await this.syncRuns.finish(runId, { status: 'failed', itemsCount: rows, error });
+        await this.complete(runId, { status: 'failed', itemsCount: rows, error }, correlationId);
         this.logger.error(error);
       } else if (failed.length > 0) {
         const error = `Не загружены ${failed.length} из ${ids.length} игроков: ${failed.slice(0, 20).join(', ')}`;
-        await this.syncRuns.finish(runId, { status: 'failed', itemsCount: rows, error });
+        await this.complete(runId, { status: 'failed', itemsCount: rows, error }, correlationId);
         this.logger.error(error);
       } else {
-        await this.syncRuns.finish(runId, { status: 'success', itemsCount: rows });
+        await this.complete(runId, { status: 'success', itemsCount: rows }, correlationId);
         this.logger.log(`Готово: ${ids.length} игроков, ${rows} строк`);
       }
     } catch (e) {

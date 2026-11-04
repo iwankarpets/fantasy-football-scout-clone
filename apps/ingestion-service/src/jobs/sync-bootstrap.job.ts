@@ -6,6 +6,9 @@ import { GameweeksService } from '../modules/gameweeks/gameweeks.service';
 import { PlayersService } from '../modules/players/players.service';
 import { SyncRunsService } from '../modules/sync-runs/sync-runs.service';
 import { TeamsService } from '../modules/teams/teams.service';
+import { OutboxService } from '../events/outbox/outbox.service';
+import { randomUUID } from 'crypto';
+import { SnapshotReadyV1 } from '@app/contracts/events/snapshot-ready.v1';
 
 const ENDPOINT = 'bootstrap-static';
 
@@ -31,12 +34,13 @@ export class SyncBootstrapJob {
     private readonly elementTypes: ElementTypesService,
     private readonly gameweeks: GameweeksService,
     private readonly players: PlayersService,
+    private readonly outbox: OutboxService
   ) {}
 
   async run(opts: { force?: boolean } = {}): Promise<SyncBootstrapResult> {
     const runId = await this.syncRuns.start(ENDPOINT);
     let hash: string | undefined;
-
+    const correlationId = randomUUID();
     try {
       const response = await this.fpl.getBootstrapStatic();
       hash = response.hash;
@@ -49,15 +53,29 @@ export class SyncBootstrapJob {
       }
 
       // Всё в одной транзакции: либо обновились все таблицы, либо ни одна
-      const counts = await this.dataSource.transaction(async (manager) => ({
-        teams: await this.teams.upsertFromApi(data.teams, manager),
-        elementTypes: await this.elementTypes.upsertFromApi(data.element_types, manager),
-        gameweeks: await this.gameweeks.upsertFromApi(data.events, manager),
-        players: await this.players.upsertFromApi(data.elements, manager),
-      }));
+       const { counts, total } = await this.dataSource.transaction(async (manager) => {
+        const counts = {
+          teams: await this.teams.upsertFromApi(data.teams, manager),
+          elementTypes: await this.elementTypes.upsertFromApi(data.element_types, manager),
+          gameweeks: await this.gameweeks.upsertFromApi(data.events, manager),
+          players: await this.players.upsertFromApi(data.elements, manager, correlationId),
+        };
+        const total = counts.teams + counts.elementTypes + counts.gameweeks + counts.players;
 
-      const total = counts.teams + counts.elementTypes + counts.gameweeks + counts.players;
-      await this.syncRuns.finish(runId, { status: 'success', itemsCount: total, payloadHash: hash });
+        await this.syncRuns.finish(runId, { status: 'success', itemsCount: total, payloadHash: hash }, manager);
+        await this.outbox.add(
+          SnapshotReadyV1,
+          {
+            gameweek_number: await this.gameweeks.currentOrNextNumber(manager),
+            updated: ['teams', 'gameweeks', 'players'],
+            sync_run_id: runId,
+          },
+          manager,
+          { correlationId },
+        );
+        return { counts, total };
+      });
+
       this.logger.log(`Готово: ${JSON.stringify(counts)}`);
       return { runId, status: 'success', counts };
     } catch (e) {

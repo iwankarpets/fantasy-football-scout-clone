@@ -3,6 +3,10 @@ import { DataSource } from 'typeorm';
 import { PlayerSnapshotsService } from '../modules/snapshots/player-snapshots.service';
 import { PlayersService } from '../modules/players/players.service';
 import { SyncRunsService } from '../modules/sync-runs/sync-runs.service';
+import { randomUUID } from 'crypto';
+import { SnapshotReadyV1 } from '@app/contracts';
+import { OutboxService } from '../events/outbox/outbox.service';
+import { GameweeksService } from '../modules/gameweeks/gameweeks.service';
 
 const ENDPOINT = 'daily-snapshot';
 
@@ -26,10 +30,13 @@ export class DailySnapshotJob {
     private readonly syncRuns: SyncRunsService,
     private readonly players: PlayersService,
     private readonly snapshots: PlayerSnapshotsService,
+    private readonly gameweeks: GameweeksService,
+    private readonly outbox: OutboxService
   ) {}
 
   async run(opts: { force?: boolean } = {}): Promise<DailySnapshotResult> {
     const runId = await this.syncRuns.start(ENDPOINT);
+    const correlationId = randomUUID();
 
     try {
       const now = new Date();
@@ -49,10 +56,21 @@ export class DailySnapshotJob {
       // Удаление старого и вставка нового в одной транзакции
       const count = await this.dataSource.transaction(async (manager) => {
         if (exists) await this.snapshots.deleteForDay(now, manager);
-        return this.snapshots.createFromPlayers(players, now, manager);
+        const count = await this.snapshots.createFromPlayers(players, now, manager);
+        await this.syncRuns.finish(runId, { status: 'success', itemsCount: count }, manager);
+        await this.outbox.add(
+          SnapshotReadyV1,
+          {
+            gameweek_number: await this.gameweeks.currentOrNextNumber(manager),
+            updated: ['player_snapshots'],
+            sync_run_id: runId,
+          },
+          manager,
+          { correlationId },
+        );
+        return count;
       });
 
-      await this.syncRuns.finish(runId, { status: 'success', itemsCount: count });
       this.logger.log(`Снимок готов: ${count} игроков`);
       return { runId, status: 'success', count };
     } catch (e) {

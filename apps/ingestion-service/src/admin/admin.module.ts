@@ -11,3 +11,4 @@ import { SchedulerModule } from '../scheduler/scheduler.module';
   providers: [InternalApiKeyGuard],
 })
 export class AdminModule {}
+

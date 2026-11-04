@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { SyncRun, SyncRunStatus } from '../../database/entities/sync-run.entity';
 
 @Injectable()
@@ -15,8 +15,10 @@ export class SyncRunsRepository {
   async finish(
     id: number,
     patch: { status: SyncRunStatus; itemsCount?: number; payloadHash?: string; error?: string },
+    manager?: EntityManager,
   ): Promise<void> {
-    await this.repo.update(id, {
+    const repo = manager ? manager.getRepository(SyncRun) : this.repo;
+    await repo.update(id, {
       status: patch.status,
       finished_at: new Date(),
       items_count: patch.itemsCount ?? null,

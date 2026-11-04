@@ -23,7 +23,7 @@
     "@nestjs/typeorm": "^12.0.2",
     "amqp-connection-manager": "^5.0.1",
     "amqplib": "^2.2.0",
-    "bullmq": "^6.4.0",
+    "bullmq": "5.81.5",
     "grammy": "^1.46.0",
     "ioredis": "^5.11.1",
     "pg": "^8.23.1",

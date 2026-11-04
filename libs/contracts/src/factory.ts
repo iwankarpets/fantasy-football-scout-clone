@@ -24,5 +24,5 @@ export function createEvent<D extends AnyEventDefinition>(
     correlation_id: meta.correlationId ?? randomUUID(),
     source: meta.source,
     data,
-  });
+  }) as z.output<D['schema']>;
 }

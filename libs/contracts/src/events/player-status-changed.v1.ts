@@ -3,6 +3,8 @@ import { defineEvent } from '../envelope';
 
 export const PLAYER_STATUSES = ['a', 'd', 'i', 's', 'u'] as const;
 
+export type PlayerStatus = (typeof PLAYER_STATUSES)[number];
+
 export const PlayerStatusChangedV1 = defineEvent(
   'player.status_changed',
   1,

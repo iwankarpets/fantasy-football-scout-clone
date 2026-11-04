@@ -3,6 +3,7 @@ import { EntityManager } from 'typeorm';
 import { ApiGameweek } from '../../clients/fpl-api/schemas/bootstrap-static.schema';
 import { GameweeksRepository } from './gameweeks.repository';
 import { mapGameweek } from './gameweeks.mapper';
+import { Gameweek } from '../../database/entities/gameweek.entity';
 
 @Injectable()
 export class GameweeksService {
@@ -15,5 +16,13 @@ export class GameweeksService {
       items.map((item) => mapGameweek(item, now)),
       manager,
     );
+  }
+
+  currentOrNextNumber(manager?: EntityManager): Promise<number | null> {
+    return this.repository.findCurrentOrNextId(manager);
+  }
+
+  nextDeadline(now = new Date()): Promise<Gameweek | null> {
+    return this.repository.findNextDeadline(Math.floor(now.getTime() / 1000));
   }
 }

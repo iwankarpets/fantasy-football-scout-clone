@@ -14,6 +14,7 @@ import { ChangesModule } from './modules/changes/changes.module';
 import { SyncRunsModule } from './modules/sync-runs/sync-runs.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { BullModule } from '@nestjs/bullmq';
+import { MessagingModule } from '@app/messaging/messaging.module';
 
 @Module({
   imports: [
@@ -42,6 +43,12 @@ import { BullModule } from '@nestjs/bullmq';
         host: config.getOrThrow<string>('redis.host'),
         port: config.getOrThrow<number>('redis.port'),
       },
+      }),
+    }),
+    MessagingModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        url: config.getOrThrow<string>('rabbitmq.url'),
       }),
     }),
     FplApiModule,

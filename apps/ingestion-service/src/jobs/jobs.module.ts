@@ -12,6 +12,7 @@ import { PlayerGameweekStatsModule } from '../modules/player-gameweek-stats/play
 import { SyncPlayerHistoryJob } from './sync-player-history.job';
 import { SnapshotsModule } from '../modules/snapshots/snapshots.module';
 import { DailySnapshotJob } from './daily-snapshot.job';
+import { EventsModule } from '../events/events.module';
 
 /** Позже добавятся BullMQ-очередь и остальные джобы (history, snapshot, deadline). */
 @Module({
@@ -24,7 +25,8 @@ import { DailySnapshotJob } from './daily-snapshot.job';
     SyncRunsModule,
     FixturesModule,
     PlayerGameweekStatsModule,
-    SnapshotsModule
+    SnapshotsModule,
+    EventsModule
   ],
   providers: [SyncBootstrapJob, SyncFixturesJob, SyncPlayerHistoryJob, DailySnapshotJob],
   exports: [SyncBootstrapJob, SyncFixturesJob, SyncPlayerHistoryJob, DailySnapshotJob],
