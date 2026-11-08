@@ -31,7 +31,7 @@ export class DailySnapshotJob {
     private readonly players: PlayersService,
     private readonly snapshots: PlayerSnapshotsService,
     private readonly gameweeks: GameweeksService,
-    private readonly outbox: OutboxService
+    private readonly outbox: OutboxService,
   ) {}
 
   async run(opts: { force?: boolean } = {}): Promise<DailySnapshotResult> {
@@ -55,7 +55,9 @@ export class DailySnapshotJob {
 
       // Удаление старого и вставка нового в одной транзакции
       const count = await this.dataSource.transaction(async (manager) => {
-        if (exists) await this.snapshots.deleteForDay(now, manager);
+        if (exists) {
+          await this.snapshots.deleteForDay(now, manager);
+        }
         const count = await this.snapshots.createFromPlayers(players, now, manager);
         await this.syncRuns.finish(runId, { status: 'success', itemsCount: count }, manager);
         await this.outbox.add(

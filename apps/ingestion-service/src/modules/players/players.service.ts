@@ -6,7 +6,10 @@ import { mapPlayer } from './players.mapper';
 import { PlayerChangesService } from '../changes/player-changes.service';
 import { detectPlayerChanges, PlayerChangeRow } from '../changes/player-changes.detector';
 import { PlayerSnapshotSource } from '../snapshots/player-snapshots.mapper';
-import { PlayerStatus, PlayerStatusChangedV1 } from '@app/contracts/events/player-status-changed.v1';
+import {
+  PlayerStatus,
+  PlayerStatusChangedV1,
+} from '@app/contracts/events/player-status-changed.v1';
 import { PlayerPriceChangedV1 } from '@app/contracts/events/player-price-changed.v1';
 import { OutboxService } from '../../events/outbox/outbox.service';
 
@@ -20,7 +23,11 @@ export class PlayersService {
     private readonly outbox: OutboxService,
   ) {}
 
-   async upsertFromApi(items: ApiPlayer[], manager: EntityManager, correlationId?: string): Promise<number> {
+  async upsertFromApi(
+    items: ApiPlayer[],
+    manager: EntityManager,
+    correlationId?: string,
+  ): Promise<number> {
     const now = new Date();
     const rows = items.map((item) => mapPlayer(item, now));
     const rowsById = new Map(rows.map((r) => [r.id, r]));
@@ -55,7 +62,9 @@ export class PlayersService {
           );
         }
 
-        const changed = list.filter((c) => c.type !== 'price').map((c) => c.type as 'status' | 'news');
+        const changed = list
+          .filter((c) => c.type !== 'price')
+          .map((c) => c.type as 'status' | 'news');
         if (changed.length > 0) {
           await this.outbox.add(
             PlayerStatusChangedV1,
@@ -73,7 +82,9 @@ export class PlayersService {
           );
         }
       }
-      this.logger.log(`Изменений у игроков: ${changes.length}, игроков затронуто: ${byPlayer.size}`);
+      this.logger.log(
+        `Изменений у игроков: ${changes.length}, игроков затронуто: ${byPlayer.size}`,
+      );
     }
     return count;
   }
@@ -82,9 +93,9 @@ export class PlayersService {
     return this.playerRepository.findAllIds();
   }
 
- getForSnapshot(): Promise<PlayerSnapshotSource[]> {
-  return this.playerRepository.findForSnapshot();
-}
+  getForSnapshot(): Promise<PlayerSnapshotSource[]> {
+    return this.playerRepository.findForSnapshot();
+  }
 
   getIdsWithNewMatches(days = 3): Promise<number[]> {
     return this.playerRepository.findIdsWithNewMatches(days);

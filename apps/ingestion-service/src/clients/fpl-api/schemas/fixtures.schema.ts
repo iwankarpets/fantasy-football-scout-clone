@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const fixtureSchema = z.object({
   id: z.number().int(),
   code: z.number().int(),
-  event: z.number().int().nullable(),            // null у перенесённых матчей
+  event: z.number().int().nullable(), // null у перенесённых матчей
   team_h: z.number().int(),
   team_a: z.number().int(),
   team_h_score: z.number().int().nullable(),

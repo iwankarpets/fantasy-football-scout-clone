@@ -45,7 +45,9 @@ export class SyncPlayerHistoryJob {
 
   /** Для админки: запускает обход в фоне и сразу возвращает runId. */
   async start(opts: SyncPlayerHistoryOptions = {}): Promise<{ runId: number; status: 'started' }> {
-    if (this.running) throw new Error('sync-player-history уже выполняется');
+    if (this.running) {
+      throw new Error('sync-player-history уже выполняется');
+    }
     this.running = true;
 
     try {
@@ -62,7 +64,9 @@ export class SyncPlayerHistoryJob {
 
   /** Для очереди: выполняет обход и ждёт окончания, чтобы concurrency: 1 защищал от наложения запросов. */
   async run(opts: SyncPlayerHistoryOptions = {}): Promise<{ runId: number }> {
-    if (this.running) throw new Error('sync-player-history уже выполняется');
+    if (this.running) {
+      throw new Error('sync-player-history уже выполняется');
+    }
     this.running = true;
     try {
       const runId = await this.syncRuns.start(ENDPOINT);
@@ -75,9 +79,13 @@ export class SyncPlayerHistoryJob {
 
   private async resolveIds(opts: SyncPlayerHistoryOptions): Promise<number[]> {
     let ids: number[];
-    if (opts.playerIds) ids = opts.playerIds;
-    else if (opts.onlyNewMatches) ids = await this.players.getIdsWithNewMatches(opts.days ?? 3);
-    else ids = await this.players.getAllIds();
+    if (opts.playerIds) {
+      ids = opts.playerIds;
+    } else if (opts.onlyNewMatches) {
+      ids = await this.players.getIdsWithNewMatches(opts.days ?? 3);
+    } else {
+      ids = await this.players.getAllIds();
+    }
 
     return opts.limit ? ids.slice(0, opts.limit) : ids;
   }
@@ -109,7 +117,9 @@ export class SyncPlayerHistoryJob {
     try {
       const correlationId = randomUUID();
       const ids = await this.resolveIds(opts);
-      if (ids.length === 0) this.logger.log('Нет игроков для загрузки истории');
+      if (ids.length === 0) {
+        this.logger.log('Нет игроков для загрузки истории');
+      }
 
       let rows = 0;
       let consecutiveFailures = 0;
@@ -132,7 +142,9 @@ export class SyncPlayerHistoryJob {
           }
         }
 
-        if ((i + 1) % 50 === 0) this.logger.log(`Обработано ${i + 1}/${ids.length} игроков`);
+        if ((i + 1) % 50 === 0) {
+          this.logger.log(`Обработано ${i + 1}/${ids.length} игроков`);
+        }
         await sleep(this.fpl.requestDelayMs);
       }
 

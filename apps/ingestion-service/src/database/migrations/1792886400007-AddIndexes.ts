@@ -17,10 +17,16 @@ export class AddIndexes1792886400007 implements MigrationInterface {
     await q.query(`CREATE INDEX idx_pgs_element_round ON player_gameweek_stats (element, round)`);
     await q.query(`CREATE INDEX idx_pgs_round         ON player_gameweek_stats (round)`);
 
-    await q.query(`CREATE INDEX idx_snapshots_player_captured ON player_snapshots (player_id, captured_at)`);
-    await q.query(`CREATE INDEX idx_changes_player_detected   ON player_changes (player_id, detected_at)`);
+    await q.query(
+      `CREATE INDEX idx_snapshots_player_captured ON player_snapshots (player_id, captured_at)`,
+    );
+    await q.query(
+      `CREATE INDEX idx_changes_player_detected   ON player_changes (player_id, detected_at)`,
+    );
 
-    await q.query(`CREATE INDEX idx_sync_runs_endpoint_started ON sync_runs (endpoint, started_at DESC)`);
+    await q.query(
+      `CREATE INDEX idx_sync_runs_endpoint_started ON sync_runs (endpoint, started_at DESC)`,
+    );
 
     // publisher каждую секунду выбирает только неотправленные строки
     await q.query(`

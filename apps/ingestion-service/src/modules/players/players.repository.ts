@@ -16,20 +16,21 @@ export class PlayersRepository {
     return upsertInChunks(repo, rows, ['id']);
   }
 
-   async findAllIds(): Promise<number[]> {
+  async findAllIds(): Promise<number[]> {
     const rows = await this.repo.find({ select: { id: true }, order: { id: 'ASC' } });
     return rows.map((r) => r.id);
-   }
+  }
 
-
-   async findBaselines(manager?: EntityManager): Promise<Map<number, PlayerBaseline>> {
+  async findBaselines(manager?: EntityManager): Promise<Map<number, PlayerBaseline>> {
     const repo = manager ? manager.getRepository(Player) : this.repo;
-    const rows = await repo.find({ select: { id: true, now_cost: true, status: true, news: true } });
+    const rows = await repo.find({
+      select: { id: true, now_cost: true, status: true, news: true },
+    });
     return new Map(rows.map((r) => [r.id, r]));
   }
 
-   async findForSnapshot(): Promise<PlayerSnapshotSource[]> {
-      return this.repo.find({
+  async findForSnapshot(): Promise<PlayerSnapshotSource[]> {
+    return this.repo.find({
       select: {
         id: true,
         now_cost: true,
@@ -43,7 +44,7 @@ export class PlayersRepository {
 
   async findIdsWithNewMatches(days: number): Promise<number[]> {
     const rows: { id: number }[] = await this.repo.query(
-    `SELECT DISTINCT p.id
+      `SELECT DISTINCT p.id
        FROM players p
        JOIN fixtures f
          ON f.finished AND f.finished_provisional
@@ -53,8 +54,8 @@ export class PlayersRepository {
          ON s.element = p.id AND s.fixture = f.id
       WHERE s.id IS NULL
       ORDER BY p.id`,
-    [days],
-  );
-  return rows.map((r) => r.id);
-}
+      [days],
+    );
+    return rows.map((r) => r.id);
+  }
 }

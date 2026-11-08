@@ -4,7 +4,10 @@ import { PlayerGameweekStats } from '../../database/entities/player-gameweek-sta
 /** id не заполняем: его выдаёт база (identity). */
 export type PlayerGameweekStatsRow = Omit<PlayerGameweekStats, 'id'>;
 
-export function mapPlayerGameweekStats(api: ApiFplElementHistoryItem, now: Date): PlayerGameweekStatsRow {
+export function mapPlayerGameweekStats(
+  api: ApiFplElementHistoryItem,
+  now: Date,
+): PlayerGameweekStatsRow {
   return {
     element: api.element,
     fixture: api.fixture,

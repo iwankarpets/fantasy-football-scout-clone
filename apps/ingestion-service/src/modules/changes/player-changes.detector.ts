@@ -10,15 +10,23 @@ export function detectPlayerChanges(
   next: PlayerBaseline,
   now: Date,
 ): PlayerChangeRow[] {
-  if (!old) return [];
+  if (!old) {
+    return [];
+  }
 
   const rows: PlayerChangeRow[] = [];
   const push = (type: PlayerChangeRow['type'], from: string, to: string) =>
     rows.push({ player_id: next.id, type, old_value: from, new_value: to, detected_at: now });
 
-  if (old.now_cost !== next.now_cost) push('price', String(old.now_cost), String(next.now_cost));
-  if (old.status !== next.status) push('status', old.status, next.status);
-  if (old.news !== next.news) push('news', old.news, next.news);
+  if (old.now_cost !== next.now_cost) {
+    push('price', String(old.now_cost), String(next.now_cost));
+  }
+  if (old.status !== next.status) {
+    push('status', old.status, next.status);
+  }
+  if (old.news !== next.news) {
+    push('news', old.news, next.news);
+  }
 
   return rows;
 }

@@ -27,9 +27,21 @@ import { DeadlineCheckJob } from './deadline-check.job';
     FixturesModule,
     PlayerGameweekStatsModule,
     SnapshotsModule,
-    EventsModule
+    EventsModule,
   ],
-  providers: [SyncBootstrapJob, SyncFixturesJob, SyncPlayerHistoryJob, DailySnapshotJob, DeadlineCheckJob],
-  exports: [SyncBootstrapJob, SyncFixturesJob, SyncPlayerHistoryJob, DailySnapshotJob, DeadlineCheckJob],
+  providers: [
+    SyncBootstrapJob,
+    SyncFixturesJob,
+    SyncPlayerHistoryJob,
+    DailySnapshotJob,
+    DeadlineCheckJob,
+  ],
+  exports: [
+    SyncBootstrapJob,
+    SyncFixturesJob,
+    SyncPlayerHistoryJob,
+    DailySnapshotJob,
+    DeadlineCheckJob,
+  ],
 })
 export class JobsModule {}

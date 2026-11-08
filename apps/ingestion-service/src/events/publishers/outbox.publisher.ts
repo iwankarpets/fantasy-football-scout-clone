@@ -22,39 +22,54 @@ export class OutboxPublisher implements OnModuleInit, OnModuleDestroy {
 
   onModuleDestroy(): void {
     this.stopped = true;
-    if (this.timer) clearTimeout(this.timer);
+    if (this.timer) {
+      clearTimeout(this.timer);
+    }
   }
 
   /** setTimeout вместо setInterval: следующий тик начинается только после окончания предыдущего. */
   private schedule(delay: number): void {
-    if (this.stopped) return;
-    this.timer = setTimeout(async () => {
-      let next = POLL_INTERVAL_MS;
-      try {
-        const sent = await this.tick();
-        if (sent === BATCH_SIZE) next = 0; // очередь не пуста, не ждём
-      } catch (e) {
-        this.logger.error(`Ошибка публикации outbox: ${(e as Error).message}`);
-      }
-      this.schedule(next);
+    if (this.stopped) {
+      return;
+    }
+    this.timer = setTimeout(() => {
+      void this.run();
     }, delay);
+  }
+
+  private async run(): Promise<void> {
+    let next = POLL_INTERVAL_MS;
+    try {
+      const sent = await this.tick();
+      if (sent === BATCH_SIZE) {
+        // очередь не пуста, не ждём
+        next = 0;
+      }
+    } catch (e) {
+      this.logger.error(`Ошибка публикации outbox: ${(e as Error).message}`);
+    }
+    this.schedule(next);
   }
 
   /** Возвращает число отправленных событий. */
   private async tick(): Promise<number> {
     return this.dataSource.transaction(async (m) => {
       // SKIP LOCKED: несколько копий сервиса не схватят одни и те же строки
-      const rows: { id: string; payload: { type: string; event_id: string; occurred_at: string } }[] =
-        await m.query(
-          `SELECT id, payload
+      const rows: {
+        id: string;
+        payload: { type: string; event_id: string; occurred_at: string };
+      }[] = await m.query(
+        `SELECT id, payload
              FROM outbox_events
             WHERE published_at IS NULL
             ORDER BY created_at, id
             LIMIT $1
             FOR UPDATE SKIP LOCKED`,
-          [BATCH_SIZE],
-        );
-      if (rows.length === 0) return 0;
+        [BATCH_SIZE],
+      );
+      if (rows.length === 0) {
+        return 0;
+      }
 
       const sentIds: string[] = [];
       for (const row of rows) {
@@ -69,7 +84,9 @@ export class OutboxPublisher implements OnModuleInit, OnModuleDestroy {
       }
 
       if (sentIds.length > 0) {
-        await m.query(`UPDATE outbox_events SET published_at = now() WHERE id = ANY($1::uuid[])`, [sentIds]);
+        await m.query(`UPDATE outbox_events SET published_at = now() WHERE id = ANY($1::uuid[])`, [
+          sentIds,
+        ]);
       }
       return sentIds.length;
     });

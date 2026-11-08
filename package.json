@@ -9,7 +9,20 @@
     "typeorm": "typeorm-ts-node-commonjs -d apps/ingestion-service/src/database/data-source.ts",
     "ingestion:migration:run": "npm run typeorm -- migration:run",
     "ingestion:migration:revert": "npm run typeorm -- migration:revert",
-    "ingestion:migration:show": "npm run typeorm -- migration:show"
+    "ingestion:migration:show": "npm run typeorm -- migration:show",
+    "prepare": "husky",
+    "lint": "eslint \"{apps,libs}/**/*.ts\"",
+    "lint:fix": "eslint \"{apps,libs}/**/*.ts\" --fix",
+    "format": "prettier --write \"{apps,libs}/**/*.ts\""
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@grammyjs/auto-retry": "^2.0.2",
@@ -31,8 +44,17 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.5",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.7",
+    "globals": "^17.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
     "ts-node": "^10.9.2",
-    "typescript": "~5.9"
+    "typescript": "~5.9",
+    "typescript-eslint": "^8.72.1"
   }
 }

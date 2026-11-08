@@ -24,7 +24,9 @@ export class InternalApiKeyGuard implements CanActivate {
       provided.length === this.expected.length &&
       timingSafeEqual(provided, this.expected);
 
-    if (!ok) throw new AccessDeniedException('Invalid internal API key');
+    if (!ok) {
+      throw new AccessDeniedException('Invalid internal API key');
+    }
     return true;
   }
 }

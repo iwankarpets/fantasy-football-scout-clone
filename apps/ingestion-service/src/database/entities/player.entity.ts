@@ -42,9 +42,21 @@ export class Player {
   ict_index!: number;
   @Column({ type: 'int' }) defensive_contribution!: number;
 
-  @Column({ type: 'numeric', precision: 5, scale: 1, nullable: true, transformer: numericTransformer })
+  @Column({
+    type: 'numeric',
+    precision: 5,
+    scale: 1,
+    nullable: true,
+    transformer: numericTransformer,
+  })
   ep_next!: number | null;
-  @Column({ type: 'numeric', precision: 5, scale: 1, nullable: true, transformer: numericTransformer })
+  @Column({
+    type: 'numeric',
+    precision: 5,
+    scale: 1,
+    nullable: true,
+    transformer: numericTransformer,
+  })
   ep_this!: number | null;
 
   @Column({ type: 'int' }) cost_change_event!: number;

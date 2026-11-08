@@ -13,7 +13,9 @@ export class DeadlineProcessor extends WorkerHost {
   }
 
   async process(job: Job): Promise<unknown> {
-    if (job.name !== JOB_DEADLINE_CHECK) throw new Error(`Неизвестная задача: ${job.name}`);
+    if (job.name !== JOB_DEADLINE_CHECK) {
+      throw new Error(`Неизвестная задача: ${job.name}`);
+    }
     const result = await this.deadline.run();
     this.logger.debug(`deadline-check: ${JSON.stringify(result)}`);
     return result;

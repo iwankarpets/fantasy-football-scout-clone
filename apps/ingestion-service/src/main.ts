@@ -29,7 +29,6 @@ async function bootstrap() {
   logger.log(`Сервис запущен на порту ${port}`, 'Bootstrap');
 }
 
-
 bootstrap().catch((err) => {
   logger.fatal(err, 'Bootstrap');
   process.exit(1);

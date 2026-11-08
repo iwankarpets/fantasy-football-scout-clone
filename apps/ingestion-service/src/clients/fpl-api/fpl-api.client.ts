@@ -51,9 +51,13 @@ export class FplApiClient {
     return this.fetchParsed('/fixtures/', 'fixtures', fixturesSchema);
   }
 
- getElementSummary(id: number): Promise<FplResponse<ApiFplElementSummary>> {
-  return this.fetchParsed(`/element-summary/${id}/`, `element-summary/${id}`, elementSummarySchema);
-}
+  getElementSummary(id: number): Promise<FplResponse<ApiFplElementSummary>> {
+    return this.fetchParsed(
+      `/element-summary/${id}/`,
+      `element-summary/${id}`,
+      elementSummarySchema,
+    );
+  }
   /** Запрос + проверка формата: общий шаг для всех публичных методов. */
   private async fetchParsed<T>(
     path: string,
@@ -108,13 +112,17 @@ export class FplApiClient {
         }
         lastError = new Error(`HTTP ${res.status}`);
       } catch (e) {
-        if (e instanceof AppException) throw e;
+        if (e instanceof AppException) {
+          throw e;
+        }
         lastError = e; // таймаут или сетевая ошибка
       }
 
       if (attempt < MAX_ATTEMPTS) {
         const delay = BACKOFF_BASE_MS * 2 ** (attempt - 1);
-        this.logger.warn(`GET ${path}: попытка ${attempt}/${MAX_ATTEMPTS} не удалась, повтор через ${delay} мс`);
+        this.logger.warn(
+          `GET ${path}: попытка ${attempt}/${MAX_ATTEMPTS} не удалась, повтор через ${delay} мс`,
+        );
         await sleep(delay);
       }
     }

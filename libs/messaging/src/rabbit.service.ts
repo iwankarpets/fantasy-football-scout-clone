@@ -75,7 +75,9 @@ export class RabbitService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async onMessage(ch: ConfirmChannel, msg: ConsumeMessage | null, opts: SubscribeOptions) {
-    if (!msg) return; // consumer отменён брокером
+    if (!msg) {
+      return;
+    } // consumer отменён брокером
 
     let raw: unknown;
     try {
@@ -97,7 +99,9 @@ export class RabbitService implements OnModuleInit, OnModuleDestroy {
       await opts.handler(parsed.event);
       ch.ack(msg);
     } catch (e) {
-      this.logger.error(`[${opts.queue}] ошибка обработки ${parsed.event.type}: ${(e as Error).message}`);
+      this.logger.error(
+        `[${opts.queue}] ошибка обработки ${parsed.event.type}: ${(e as Error).message}`,
+      );
       ch.nack(msg, false, false);
     }
   }

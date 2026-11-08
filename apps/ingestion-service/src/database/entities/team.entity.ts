@@ -22,7 +22,13 @@ export class Team {
   @Column({ type: 'int' }) points!: number;
   @Column({ type: 'int' }) position!: number;
 
-  @Column({ type: 'numeric', precision: 4, scale: 1, nullable: true, transformer: numericTransformer })
+  @Column({
+    type: 'numeric',
+    precision: 4,
+    scale: 1,
+    nullable: true,
+    transformer: numericTransformer,
+  })
   form!: number | null;
   @Column({ type: 'int', nullable: true }) strength!: number | null;
 

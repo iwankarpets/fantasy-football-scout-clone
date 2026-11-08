@@ -34,7 +34,7 @@ export class SyncBootstrapJob {
     private readonly elementTypes: ElementTypesService,
     private readonly gameweeks: GameweeksService,
     private readonly players: PlayersService,
-    private readonly outbox: OutboxService
+    private readonly outbox: OutboxService,
   ) {}
 
   async run(opts: { force?: boolean } = {}): Promise<SyncBootstrapResult> {
@@ -53,7 +53,7 @@ export class SyncBootstrapJob {
       }
 
       // Всё в одной транзакции: либо обновились все таблицы, либо ни одна
-       const { counts, total } = await this.dataSource.transaction(async (manager) => {
+      const { counts, total } = await this.dataSource.transaction(async (manager) => {
         const counts = {
           teams: await this.teams.upsertFromApi(data.teams, manager),
           elementTypes: await this.elementTypes.upsertFromApi(data.element_types, manager),
@@ -62,7 +62,11 @@ export class SyncBootstrapJob {
         };
         const total = counts.teams + counts.elementTypes + counts.gameweeks + counts.players;
 
-        await this.syncRuns.finish(runId, { status: 'success', itemsCount: total, payloadHash: hash }, manager);
+        await this.syncRuns.finish(
+          runId,
+          { status: 'success', itemsCount: total, payloadHash: hash },
+          manager,
+        );
         await this.outbox.add(
           SnapshotReadyV1,
           {

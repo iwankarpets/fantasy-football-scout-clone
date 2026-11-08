@@ -9,7 +9,6 @@ interface HttpReq {
   url?: string;
 }
 
-
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('ExceptionFilter');
@@ -39,7 +38,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const where = `${req.method ?? '?'} ${req.url ?? '?'} -> ${status}`;
     const reason = exception instanceof Error ? exception.message : String(exception);
     if (status >= 500) {
-      this.logger.error(`${where}: ${reason}`, exception instanceof Error ? exception.stack : undefined);
+      this.logger.error(
+        `${where}: ${reason}`,
+        exception instanceof Error ? exception.stack : undefined,
+      );
     } else {
       this.logger.warn(`${where}: ${reason}`);
     }

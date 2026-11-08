@@ -7,7 +7,10 @@ export type PlayerSnapshotSource = Pick<
 >;
 export type PlayerSnapshotRow = Omit<PlayerSnapshot, 'id'>;
 
-export function mapPlayerSnapshot(playerSnapshot: PlayerSnapshotSource, now: Date): PlayerSnapshotRow {
+export function mapPlayerSnapshot(
+  playerSnapshot: PlayerSnapshotSource,
+  now: Date,
+): PlayerSnapshotRow {
   return {
     player_id: playerSnapshot.id,
     captured_at: now,

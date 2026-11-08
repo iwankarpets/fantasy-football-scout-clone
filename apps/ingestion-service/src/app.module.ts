@@ -39,10 +39,10 @@ import { MessagingModule } from '@app/messaging/messaging.module';
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-      connection: {
-        host: config.getOrThrow<string>('redis.host'),
-        port: config.getOrThrow<number>('redis.port'),
-      },
+        connection: {
+          host: config.getOrThrow<string>('redis.host'),
+          port: config.getOrThrow<number>('redis.port'),
+        },
       }),
     }),
     MessagingModule.forRootAsync({

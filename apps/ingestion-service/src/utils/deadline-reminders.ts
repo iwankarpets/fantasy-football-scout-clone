@@ -14,12 +14,18 @@ export function pickReminderThreshold(
   thresholds: readonly number[] = REMINDER_THRESHOLD_HOURS,
 ): number | null {
   const hoursLeft = (deadlineEpochSec - nowEpochSec) / 3600;
-  if (hoursLeft <= 0) return null;
+  if (hoursLeft <= 0) {
+    return null;
+  }
 
   const reached = thresholds.filter((t) => hoursLeft <= t);
   return reached.length > 0 ? Math.min(...reached) : null;
 }
 
-export function deadlineDedupKey(gameweek: number, deadlineEpochSec: number, hours: number): string {
+export function deadlineDedupKey(
+  gameweek: number,
+  deadlineEpochSec: number,
+  hours: number,
+): string {
   return `deadline:${gameweek}:${deadlineEpochSec}:${hours}`;
 }

@@ -15,17 +15,17 @@ export class GameweeksRepository {
   }
 
   /** Номер текущего тура, а если его нет, следующего. В межсезонье может быть null. */
-async findCurrentOrNextId(manager?: EntityManager): Promise<number | null> {
-  const repo = manager ? manager.getRepository(Gameweek) : this.repo;
-  const row = await repo.findOne({
-    where: [{ is_current: true }, { is_next: true }],
-    order: { is_current: 'DESC', id: 'ASC' },
-    select: { id: true },
-  });
-  return row?.id ?? null;
-}
+  async findCurrentOrNextId(manager?: EntityManager): Promise<number | null> {
+    const repo = manager ? manager.getRepository(Gameweek) : this.repo;
+    const row = await repo.findOne({
+      where: [{ is_current: true }, { is_next: true }],
+      order: { is_current: 'DESC', id: 'ASC' },
+      select: { id: true },
+    });
+    return row?.id ?? null;
+  }
 
-/** Тур с наименьшим deadline_time_epoch больше заданного момента (epoch в секундах). */
+  /** Тур с наименьшим deadline_time_epoch больше заданного момента (epoch в секундах). */
   findNextDeadline(nowEpochSec: number): Promise<Gameweek | null> {
     return this.repo.findOne({
       where: { deadline_time_epoch: MoreThan(nowEpochSec) },

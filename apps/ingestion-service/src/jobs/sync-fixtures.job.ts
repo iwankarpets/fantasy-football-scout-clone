@@ -50,7 +50,11 @@ export class SyncFixturesJob {
 
       const count = await this.dataSource.transaction(async (manager) => {
         const count = await this.fixtures.upsertFromApi(response.data, manager);
-        await this.syncRuns.finish(runId, { status: 'success', itemsCount: count, payloadHash: hash }, manager);
+        await this.syncRuns.finish(
+          runId,
+          { status: 'success', itemsCount: count, payloadHash: hash },
+          manager,
+        );
         await this.outbox.add(
           SnapshotReadyV1,
           {

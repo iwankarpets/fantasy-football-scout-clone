@@ -27,10 +27,14 @@ export class DeadlineCheckJob {
     const now = opts.now ?? new Date();
 
     const gw = await this.gameweeks.nextDeadline(now);
-    if (!gw) return { status: 'no_deadline' };
+    if (!gw) {
+      return { status: 'no_deadline' };
+    }
 
     const hours = pickReminderThreshold(now.getTime() / 1000, gw.deadline_time_epoch);
-    if (hours === null) return { status: 'not_due', gameweek: gw.id };
+    if (hours === null) {
+      return { status: 'not_due', gameweek: gw.id };
+    }
 
     const created = await this.dataSource.transaction((manager) =>
       this.outbox.add(
@@ -48,7 +52,9 @@ export class DeadlineCheckJob {
       ),
     );
 
-    if (created) this.logger.log(`GW${gw.id}: напоминание за ${hours} ч поставлено в outbox`);
+    if (created) {
+      this.logger.log(`GW${gw.id}: напоминание за ${hours} ч поставлено в outbox`);
+    }
     return { status: created ? 'published' : 'already_sent', gameweek: gw.id, hours };
   }
 }

@@ -90,14 +90,14 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
       await this.bot.api.setMyCommands(menu);
       this.logger.log(`Меню команд обновлено (${menu.length})`);
     } catch (e) {
-      this.logger.warn(`Не удалось обновить меню команд: ${e instanceof Error ? e.message : String(e)}`);
+      this.logger.warn(
+        `Не удалось обновить меню команд: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
   }
 
   private helpText(): string {
-    const lines = this.commands
-      .filter((c) => c.inMenu)
-      .map((c) => `/${c.name} — ${c.description}`);
+    const lines = this.commands.filter((c) => c.inMenu).map((c) => `/${c.name} — ${c.description}`);
     return ['Команды:', ...lines, '/help — Список команд'].join('\n');
   }
 }

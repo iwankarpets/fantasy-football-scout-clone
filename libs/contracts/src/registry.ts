@@ -24,11 +24,15 @@ export type ParseResult =
 
 /** Для получателей: любой not ok уходит в очередь для разбора (DLQ). */
 export function parseEvent(raw: unknown): ParseResult {
-  if (typeof raw !== 'object' || raw === null) return { ok: false, reason: 'not an object' };
+  if (typeof raw !== 'object' || raw === null) {
+    return { ok: false, reason: 'not an object' };
+  }
   const { type, version } = raw as { type?: unknown; version?: unknown };
 
   const def = registry.get(`${String(type)}@${String(version)}`);
-  if (!def) return { ok: false, reason: `unknown event ${String(type)} v${String(version)}` };
+  if (!def) {
+    return { ok: false, reason: `unknown event ${String(type)} v${String(version)}` };
+  }
 
   const res = def.schema.safeParse(raw);
   return res.success

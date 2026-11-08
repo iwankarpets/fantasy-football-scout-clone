@@ -64,7 +64,7 @@ export const SCHEDULES: ScheduleDef[] = [
     // attempts: 1 — неудачный обход не повторяем: следующий запуск догрузит недостающее
     opts: { attempts: 1, removeOnComplete: 50, removeOnFail: 100 },
   },
-    {
+  {
     id: 'deadline-check-every-5m',
     queue: DEADLINE_QUEUE,
     jobName: JOB_DEADLINE_CHECK,

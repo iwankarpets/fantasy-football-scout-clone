@@ -2,7 +2,13 @@ import { z } from 'zod';
 import { defineEvent } from '../envelope';
 
 export const SNAPSHOT_UPDATED = [
-  'teams', 'gameweeks', 'players', 'fixtures', 'player_history', 'player_snapshots' ] as const;
+  'teams',
+  'gameweeks',
+  'players',
+  'fixtures',
+  'player_history',
+  'player_snapshots',
+] as const;
 
 /** Данных нет, только сигнал «забери свежее». gameweek_number может быть null в межсезонье. */
 export const SnapshotReadyV1 = defineEvent(

@@ -9,7 +9,10 @@ const CHUNK_SIZE = 500;
 
 @Injectable()
 export class PlayerSnapshotsRepository {
-  constructor(@InjectRepository(PlayerSnapshot) private readonly playerShapshotRepository: Repository<PlayerSnapshot>) {}
+  constructor(
+    @InjectRepository(PlayerSnapshot)
+    private readonly playerShapshotRepository: Repository<PlayerSnapshot>,
+  ) {}
 
   /** Есть ли уже снимки за этот день (границы суток в UTC). */
   async existsForDay(start: Date, end: Date): Promise<boolean> {

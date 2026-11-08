@@ -4,8 +4,6 @@ import { FixturesRepository } from './fixture.repository';
 import { mapFixture } from './fixture.mapper';
 import { ApiFplFixture } from '../../clients/fpl-api/schemas/fixtures.schema';
 
-
-
 @Injectable()
 export class FixturesService {
   constructor(private readonly repository: FixturesRepository) {}

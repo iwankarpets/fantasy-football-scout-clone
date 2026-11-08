@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { BotService } from './bot.service';
 import { BOT_COMMANDS, BotCommand, COMMANDS } from './commands';
 
- 
 @Module({
   providers: [
     BotService,

@@ -19,7 +19,9 @@ export class SchedulerService implements OnModuleInit {
 
   private queueFor(name: string): Queue {
     const q = this.queues[name];
-    if (!q) throw new Error(`Неизвестная очередь: ${name}`);
+    if (!q) {
+      throw new Error(`Неизвестная очередь: ${name}`);
+    }
     return q;
   }
 
@@ -28,7 +30,9 @@ export class SchedulerService implements OnModuleInit {
 
     if (!enabled) {
       // Планировщики хранятся в Redis и переживают перезапуск, поэтому при выключении снимаем их
-      for (const s of SCHEDULES) await this.queueFor(s.queue).removeJobScheduler(s.id);
+      for (const s of SCHEDULES) {
+        await this.queueFor(s.queue).removeJobScheduler(s.id);
+      }
       this.logger.log('Расписание выключено (SCHEDULER_ENABLED не true), задачи сняты');
       return;
     }
@@ -45,7 +49,14 @@ export class SchedulerService implements OnModuleInit {
 
   /** Для проверки: какие планировщики есть и когда следующий запуск. */
   async list() {
-    const result: { queue: string; id: string; name: string; every?: number | null; pattern?: string | null; next: string | null }[] = [];
+    const result: {
+      queue: string;
+      id: string;
+      name: string;
+      every?: number | null;
+      pattern?: string | null;
+      next: string | null;
+    }[] = [];
     for (const [queue, q] of Object.entries(this.queues)) {
       const items = await q.getJobSchedulers();
       for (const s of items) {

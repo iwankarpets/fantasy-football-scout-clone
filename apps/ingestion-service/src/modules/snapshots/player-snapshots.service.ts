@@ -25,7 +25,11 @@ export class PlayerSnapshotsService {
   }
 
   /** Копирует ключевые поля игроков в снимок. Возвращает число строк. */
-  createFromPlayers(players: PlayerSnapshotSource[], now: Date, manager?: EntityManager): Promise<number> {
+  createFromPlayers(
+    players: PlayerSnapshotSource[],
+    now: Date,
+    manager?: EntityManager,
+  ): Promise<number> {
     return this.repository.insertMany(
       players.map((p) => mapPlayerSnapshot(p, now)),
       manager,
