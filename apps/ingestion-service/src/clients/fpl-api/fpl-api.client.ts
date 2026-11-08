@@ -6,14 +6,13 @@ import {
   AppException,
   UpstreamBadResponseException,
   UpstreamUnavailableException,
-} from '@app/common'; // TODO: поправьте путь под ваш алиас libs
+} from '@app/common'; // TODO: adjust the path for your libs alias
 import { bootstrapStaticSchema, BootstrapStatic } from './schemas/bootstrap-static.schema';
 import { fixturesSchema, ApiFplFixture } from './schemas/fixtures.schema';
 import { ApiFplElementSummary, elementSummarySchema } from './schemas/element-summary.schema';
 
 export interface FplResponse<T> {
   data: T;
-  /** sha256 сырого ответа: по нему можно пропустить неизменившийся ответ */
   hash: string;
 }
 
@@ -25,12 +24,12 @@ const BACKOFF_BASE_MS = 1_000;
 export const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
- * Единственное место вызова FPL API: таймаут, повторы с нарастающей паузой,
- * проверка формата ответа.
+ * The only place where the FPL API is called: handles timeouts, retries with exponential backoff,
+ * and response format validation.
  *
- * Ошибки:
- *  - UpstreamUnavailableException: FPL недоступен (сеть, таймаут, 429/5xx после всех повторов)
- *  - UpstreamBadResponseException: FPL ответил, но не JSON, не тот формат или 4xx
+ * Errors:
+ *  - UpstreamUnavailableException: FPL is unavailable (network, timeout, 429/5xx after all retries)
+ *  - UpstreamBadResponseException: FPL responded, but not with JSON, wrong format, or 4xx
  */
 @Injectable()
 export class FplApiClient {
@@ -58,7 +57,8 @@ export class FplApiClient {
       elementSummarySchema,
     );
   }
-  /** Запрос + проверка формата: общий шаг для всех публичных методов. */
+
+  /** Request + format validation: common step for all public methods. */
   private async fetchParsed<T>(
     path: string,
     name: string,
@@ -68,13 +68,13 @@ export class FplApiClient {
     return { data: this.parse(name, text, schema), hash };
   }
 
-  /** JSON.parse + проверка схемой; name нужен только для текста ошибки. */
+  /** JSON.parse + schema validation; 'name' is only used for error text. */
   private parse<T>(name: string, text: string, schema: z.ZodType<T>): T {
     let json: unknown;
     try {
       json = JSON.parse(text);
     } catch (cause) {
-      throw new UpstreamBadResponseException(SERVICE, `${name}: ответ не является JSON`, cause);
+      throw new UpstreamBadResponseException(SERVICE, `${name}: response is not valid JSON`, cause);
     }
 
     const parsed = schema.safeParse(json);
@@ -83,12 +83,12 @@ export class FplApiClient {
         .slice(0, 5)
         .map((i) => `${i.path.join('.')}: ${i.message}`)
         .join('; ');
-      throw new UpstreamBadResponseException(SERVICE, `${name}: неожиданный формат (${details})`);
+      throw new UpstreamBadResponseException(SERVICE, `${name}: unexpected format (${details})`);
     }
     return parsed.data;
   }
 
-  /** GET с повторами на 429, 5xx, таймаут и сетевые ошибки. */
+  /** GET request with retries for 429, 5xx, timeouts, and network errors. */
   private async getText(path: string): Promise<{ text: string; hash: string }> {
     const url = `${this.baseUrl}${path}`;
     let lastError: unknown;
@@ -107,7 +107,7 @@ export class FplApiClient {
 
         const retryable = res.status === 429 || res.status >= 500;
         if (!retryable) {
-          // 4xx кроме 429: повтор не поможет
+          // 4xx except 429: retrying won't help
           throw new UpstreamBadResponseException(SERVICE, `GET ${path}: HTTP ${res.status}`);
         }
         lastError = new Error(`HTTP ${res.status}`);
@@ -115,13 +115,13 @@ export class FplApiClient {
         if (e instanceof AppException) {
           throw e;
         }
-        lastError = e; // таймаут или сетевая ошибка
+        lastError = e; // timeout or network error
       }
 
       if (attempt < MAX_ATTEMPTS) {
         const delay = BACKOFF_BASE_MS * 2 ** (attempt - 1);
         this.logger.warn(
-          `GET ${path}: попытка ${attempt}/${MAX_ATTEMPTS} не удалась, повтор через ${delay} мс`,
+          `GET ${path}: attempt ${attempt}/${MAX_ATTEMPTS} failed, retrying in ${delay} ms`,
         );
         await sleep(delay);
       }

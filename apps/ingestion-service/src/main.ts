@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { AllExceptionsFilter, createLogger } from '@app/common'; // TODO: поправьте путь под ваш алиас libs
+import { AllExceptionsFilter, createLogger } from '@app/common'; // TODO: adjust the path for your libs alias
 import { AppModule } from './app.module';
 
 const logger = createLogger('ingestion-service');
@@ -16,7 +16,7 @@ async function bootstrap() {
       app,
       new DocumentBuilder()
         .setTitle('Ingestion service')
-        .setDescription('Служебные эндпоинты загрузки данных FPL')
+        .setDescription('Internal endpoints for FPL data ingestion')
         .setVersion('1.0')
         .addApiKey({ type: 'apiKey', name: 'x-internal-key', in: 'header' }, 'internal-key')
         .build(),
@@ -26,7 +26,7 @@ async function bootstrap() {
 
   const port = app.get(ConfigService).getOrThrow<number>('port');
   await app.listen(port);
-  logger.log(`Сервис запущен на порту ${port}`, 'Bootstrap');
+  logger.log(`Service started on port ${port}`, 'Bootstrap');
 }
 
 bootstrap().catch((err) => {

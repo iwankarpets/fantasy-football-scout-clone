@@ -11,7 +11,10 @@ export type DeadlineCheckResult =
   | { status: 'not_due'; gameweek: number }
   | { status: 'already_sent' | 'published'; gameweek: number; hours: number };
 
-/** Работает только по базе, FPL не трогает. Повторный запуск безопасен: дубли гасит dedup_key. */
+/**
+ * Operates only on the database, does not touch the FPL API.
+ * Repeated execution is safe: duplicates are suppressed by the dedup_key.
+ */
 @Injectable()
 export class DeadlineCheckJob {
   private readonly logger = new Logger(DeadlineCheckJob.name);
@@ -22,39 +25,39 @@ export class DeadlineCheckJob {
     private readonly outbox: OutboxService,
   ) {}
 
-  /** now можно передать для ручной проверки. */
+  /** 'now' can be provided for manual testing. */
   async run(opts: { now?: Date } = {}): Promise<DeadlineCheckResult> {
     const now = opts.now ?? new Date();
 
-    const gw = await this.gameweeks.nextDeadline(now);
-    if (!gw) {
+    const gameweek = await this.gameweeks.nextDeadline(now);
+    if (!gameweek) {
       return { status: 'no_deadline' };
     }
 
-    const hours = pickReminderThreshold(now.getTime() / 1000, gw.deadline_time_epoch);
+    const hours = pickReminderThreshold(now.getTime() / 1000, gameweek.deadline_time_epoch);
     if (hours === null) {
-      return { status: 'not_due', gameweek: gw.id };
+      return { status: 'not_due', gameweek: gameweek.id };
     }
 
     const created = await this.dataSource.transaction((manager) =>
       this.outbox.add(
         DeadlineApproachingV1,
         {
-          gameweek_number: gw.id,
-          deadline_at: gw.deadline_time.toISOString(),
+          gameweek_number: gameweek.id,
+          deadline_at: gameweek.deadline_time.toISOString(),
           hours_left: hours,
         },
         manager,
         {
           correlationId: randomUUID(),
-          dedupKey: deadlineDedupKey(gw.id, gw.deadline_time_epoch, hours),
+          dedupKey: deadlineDedupKey(gameweek.id, gameweek.deadline_time_epoch, hours),
         },
       ),
     );
 
     if (created) {
-      this.logger.log(`GW${gw.id}: напоминание за ${hours} ч поставлено в outbox`);
+      this.logger.log(`GW${gameweek.id}: reminder for ${hours}h left added to outbox`);
     }
-    return { status: created ? 'published' : 'already_sent', gameweek: gw.id, hours };
+    return { status: created ? 'published' : 'already_sent', gameweek: gameweek.id, hours };
   }
 }

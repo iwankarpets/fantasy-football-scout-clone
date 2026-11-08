@@ -10,23 +10,23 @@ import { PlayersService } from '../modules/players/players.service';
 import { SyncRunsService } from '../modules/sync-runs/sync-runs.service';
 
 const ENDPOINT = 'element-summary';
-/** Столько ошибок подряд считаем признаком блокировки или сбоя FPL и останавливаемся */
+/** This many consecutive errors will be treated as an FPL block or outage, stopping the process */
 const MAX_CONSECUTIVE_FAILURES = 3;
 
 export interface SyncPlayerHistoryOptions {
-  /** Только эти игроки (для проверки на паре id или догрузки пропущенных) */
+  /** Only process these players (useful for testing specific IDs or retrying missed ones) */
   playerIds?: number[];
-  /** Первые N игроков: удобно для пробного запуска */
+  /** Only process the first N players: useful for dry runs */
   limit?: number;
-  /** true: только игроки с завершёнными матчами, которых ещё нет в player_gameweek_stats */
+  /** true: only fetch players with completed matches that are not yet in player_gameweek_stats */
   onlyNewMatches?: boolean;
-  /** Окно для onlyNewMatches, в днях (по умолчанию 3) */
+  /** Window for onlyNewMatches, in days (default is 3) */
   days?: number;
 }
 
 /**
- * Загрузка истории матчей игроков из element-summary/{id}.history
- * в player_gameweek_stats. Запросы идут по одному, с паузой.
+ * Loads player match history from element-summary/{id}.history
+ * into player_gameweek_stats. Requests are made sequentially with a delay.
  */
 @Injectable()
 export class SyncPlayerHistoryJob {
@@ -43,10 +43,10 @@ export class SyncPlayerHistoryJob {
     private readonly gameweeks: GameweeksService,
   ) {}
 
-  /** Для админки: запускает обход в фоне и сразу возвращает runId. */
+  /** For the admin panel: starts traversal in the background and returns the runId immediately. */
   async start(opts: SyncPlayerHistoryOptions = {}): Promise<{ runId: number; status: 'started' }> {
     if (this.running) {
-      throw new Error('sync-player-history уже выполняется');
+      throw new Error('sync-player-history is already running');
     }
     this.running = true;
 
@@ -62,10 +62,10 @@ export class SyncPlayerHistoryJob {
     }
   }
 
-  /** Для очереди: выполняет обход и ждёт окончания, чтобы concurrency: 1 защищал от наложения запросов. */
+  /** For the queue worker: executes the traversal and waits for completion so concurrency: 1 prevents overlaps. */
   async run(opts: SyncPlayerHistoryOptions = {}): Promise<{ runId: number }> {
     if (this.running) {
-      throw new Error('sync-player-history уже выполняется');
+      throw new Error('sync-player-history is already running');
     }
     this.running = true;
     try {
@@ -90,7 +90,7 @@ export class SyncPlayerHistoryJob {
     return opts.limit ? ids.slice(0, opts.limit) : ids;
   }
 
-  /** Финальный статус и snapshot.ready (если что-то загрузили) в одной транзакции. */
+  /** Finalizes the status and triggers snapshot.ready (if any data was loaded) in a single transaction. */
   private async complete(
     runId: number,
     patch: { status: 'success' | 'failed'; itemsCount: number; error?: string },
@@ -118,7 +118,7 @@ export class SyncPlayerHistoryJob {
       const correlationId = randomUUID();
       const ids = await this.resolveIds(opts);
       if (ids.length === 0) {
-        this.logger.log('Нет игроков для загрузки истории');
+        this.logger.log('No players to fetch history for');
       }
 
       let rows = 0;
@@ -143,27 +143,27 @@ export class SyncPlayerHistoryJob {
         }
 
         if ((i + 1) % 50 === 0) {
-          this.logger.log(`Обработано ${i + 1}/${ids.length} игроков`);
+          this.logger.log(`Processed ${i + 1}/${ids.length} players`);
         }
         await sleep(this.fpl.requestDelayMs);
       }
 
       if (aborted) {
-        const error = `Остановлено: ${MAX_CONSECUTIVE_FAILURES} ошибок подряд. Не загружены: ${failed.join(', ')}`;
+        const error = `Aborted: ${MAX_CONSECUTIVE_FAILURES} consecutive errors. Skipped: ${failed.join(', ')}`;
         await this.complete(runId, { status: 'failed', itemsCount: rows, error }, correlationId);
         this.logger.error(error);
       } else if (failed.length > 0) {
-        const error = `Не загружены ${failed.length} из ${ids.length} игроков: ${failed.slice(0, 20).join(', ')}`;
+        const error = `Failed to fetch ${failed.length} out of ${ids.length} players: ${failed.slice(0, 20).join(', ')}`;
         await this.complete(runId, { status: 'failed', itemsCount: rows, error }, correlationId);
         this.logger.error(error);
       } else {
         await this.complete(runId, { status: 'success', itemsCount: rows }, correlationId);
-        this.logger.log(`Готово: ${ids.length} игроков, ${rows} строк`);
+        this.logger.log(`Done: ${ids.length} players, ${rows} rows`);
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       await this.syncRuns.finish(runId, { status: 'failed', error: message });
-      this.logger.error(`sync-player-history упал: ${message}`);
+      this.logger.error(`sync-player-history failed: ${message}`);
     }
   }
 }

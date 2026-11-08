@@ -15,7 +15,7 @@ export class AppException extends Error {
     this.name = new.target.name;
     this.code = options.code;
     this.status = options.status ?? 500;
-    this.userMessage = options.userMessage ?? 'Что-то пошло не так. Попробуйте позже.';
+    this.userMessage = options.userMessage ?? 'Something went wrong. Please try again later.';
   }
 }
 
@@ -24,7 +24,7 @@ export class EntityNotFoundException extends AppException {
     super(`${entity} ${id} not found`, {
       code: 'NOT_FOUND',
       status: 404,
-      userMessage: 'Ничего не найдено.',
+      userMessage: 'Nothing was found.',
     });
   }
 }
@@ -34,7 +34,7 @@ export class UpstreamUnavailableException extends AppException {
     super(`${service} is unavailable`, {
       code: 'UPSTREAM_UNAVAILABLE',
       status: 503,
-      userMessage: 'Сервис временно недоступен. Попробуйте чуть позже.',
+      userMessage: 'The service is temporarily unavailable. Please try again later.',
       cause,
     });
   }
@@ -45,7 +45,7 @@ export class AccessDeniedException extends AppException {
     super(message, {
       code: 'ACCESS_DENIED',
       status: 403,
-      userMessage: 'Эта команда вам недоступна.',
+      userMessage: 'This command is not available to you.',
     });
   }
 }
@@ -55,7 +55,7 @@ export class UpstreamBadResponseException extends AppException {
     super(`${service} returned an unexpected response: ${details}`, {
       code: 'UPSTREAM_BAD_RESPONSE',
       status: 502,
-      userMessage: 'Сервис вернул некорректный ответ. Попробуйте позже.',
+      userMessage: 'The service returned an invalid response. Please try again later.',
       cause,
     });
   }

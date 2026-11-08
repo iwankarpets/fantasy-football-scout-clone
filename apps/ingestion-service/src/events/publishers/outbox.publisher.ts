@@ -27,7 +27,7 @@ export class OutboxPublisher implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** setTimeout вместо setInterval: следующий тик начинается только после окончания предыдущего. */
+  /** setTimeout instead of setInterval: the next tick starts only after the previous one finishes. */
   private schedule(delay: number): void {
     if (this.stopped) {
       return;
@@ -42,19 +42,19 @@ export class OutboxPublisher implements OnModuleInit, OnModuleDestroy {
     try {
       const sent = await this.tick();
       if (sent === BATCH_SIZE) {
-        // очередь не пуста, не ждём
+        // queue is not empty, do not wait
         next = 0;
       }
     } catch (e) {
-      this.logger.error(`Ошибка публикации outbox: ${(e as Error).message}`);
+      this.logger.error(`Error publishing outbox events: ${(e as Error).message}`);
     }
     this.schedule(next);
   }
 
-  /** Возвращает число отправленных событий. */
+  /** Returns the number of sent events. */
   private async tick(): Promise<number> {
     return this.dataSource.transaction(async (m) => {
-      // SKIP LOCKED: несколько копий сервиса не схватят одни и те же строки
+      // SKIP LOCKED: multiple service instances will not grab the same rows
       const rows: {
         id: string;
         payload: { type: string; event_id: string; occurred_at: string };
@@ -77,8 +77,8 @@ export class OutboxPublisher implements OnModuleInit, OnModuleDestroy {
           await this.rabbit.publish(row.payload);
           sentIds.push(row.id);
         } catch (e) {
-          // На первой ошибке останавливаемся: порядок сохраняется, остальное уйдёт на следующем тике
-          this.logger.warn(`Не удалось отправить ${row.id}: ${(e as Error).message}`);
+          // Stop on the first error: order is preserved, the rest will be sent on the next tick
+          this.logger.warn(`Failed to send ${row.id}: ${(e as Error).message}`);
           break;
         }
       }

@@ -18,36 +18,36 @@ export class SchedulerService implements OnModuleInit {
   }
 
   private queueFor(name: string): Queue {
-    const q = this.queues[name];
-    if (!q) {
-      throw new Error(`Неизвестная очередь: ${name}`);
+    const queue = this.queues[name];
+    if (!queue) {
+      throw new Error(`Unknown queue: ${name}`);
     }
-    return q;
+    return queue;
   }
 
   async onModuleInit(): Promise<void> {
     const enabled = this.config.getOrThrow<boolean>('scheduler.enabled');
 
     if (!enabled) {
-      // Планировщики хранятся в Redis и переживают перезапуск, поэтому при выключении снимаем их
-      for (const s of SCHEDULES) {
-        await this.queueFor(s.queue).removeJobScheduler(s.id);
+      // Schedulers are stored in Redis and survive restarts, so we remove them when disabled
+      for (const schedule of SCHEDULES) {
+        await this.queueFor(schedule.queue).removeJobScheduler(schedule.id);
       }
-      this.logger.log('Расписание выключено (SCHEDULER_ENABLED не true), задачи сняты');
+      this.logger.log('Schedule is disabled (SCHEDULER_ENABLED is not true), tasks removed');
       return;
     }
 
-    for (const s of SCHEDULES) {
-      await this.queueFor(s.queue).upsertJobScheduler(s.id, s.repeat, {
-        name: s.jobName,
+    for (const schedule of SCHEDULES) {
+      await this.queueFor(schedule.queue).upsertJobScheduler(schedule.id, schedule.repeat, {
+        name: schedule.jobName,
         data: {},
-        opts: s.opts,
+        opts: schedule.opts,
       });
     }
-    this.logger.log(`Расписание включено: ${SCHEDULES.map((s) => s.id).join(', ')}`);
+    this.logger.log(`Schedule enabled: ${SCHEDULES.map((schedule) => schedule.id).join(', ')}`);
   }
 
-  /** Для проверки: какие планировщики есть и когда следующий запуск. */
+  /** For inspection: lists existing schedulers and their next run time. */
   async list() {
     const result: {
       queue: string;
@@ -59,14 +59,14 @@ export class SchedulerService implements OnModuleInit {
     }[] = [];
     for (const [queue, q] of Object.entries(this.queues)) {
       const items = await q.getJobSchedulers();
-      for (const s of items) {
+      for (const schedule of items) {
         result.push({
           queue,
-          id: s.key,
-          name: s.name,
-          every: s.every,
-          pattern: s.pattern,
-          next: s.next ? new Date(s.next).toISOString() : null,
+          id: schedule.key,
+          name: schedule.name,
+          every: schedule.every,
+          pattern: schedule.pattern,
+          next: schedule.next ? new Date(schedule.next).toISOString() : null,
         });
       }
     }

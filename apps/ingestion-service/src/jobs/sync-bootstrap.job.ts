@@ -19,8 +19,8 @@ export interface SyncBootstrapResult {
 }
 
 /**
- * Загрузка bootstrap-static: команды, позиции, туры, игроки.
- * Позже эту джобу вызовет BullMQ-процессор по расписанию.
+ * Loading bootstrap-static: teams, positions, gameweeks, players.
+ * Later, this job will be called by a BullMQ processor on a schedule.
  */
 @Injectable()
 export class SyncBootstrapJob {
@@ -48,11 +48,11 @@ export class SyncBootstrapJob {
 
       if (!opts.force && hash === (await this.syncRuns.lastSuccessHash(ENDPOINT))) {
         await this.syncRuns.finish(runId, { status: 'skipped', payloadHash: hash });
-        this.logger.log(`Ответ не изменился (хэш ${hash.slice(0, 8)}), загрузка пропущена`);
+        this.logger.log(`Response has not changed (hash ${hash.slice(0, 8)}), sync skipped`);
         return { runId, status: 'skipped' };
       }
 
-      // Всё в одной транзакции: либо обновились все таблицы, либо ни одна
+      // Everything in a single transaction: either all tables are updated, or none
       const { counts, total } = await this.dataSource.transaction(async (manager) => {
         const counts = {
           teams: await this.teams.upsertFromApi(data.teams, manager),
@@ -80,12 +80,12 @@ export class SyncBootstrapJob {
         return { counts, total };
       });
 
-      this.logger.log(`Готово: ${JSON.stringify(counts)}`);
+      this.logger.log(`Done: ${JSON.stringify(counts)}`);
       return { runId, status: 'success', counts };
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       await this.syncRuns.finish(runId, { status: 'failed', error: message, payloadHash: hash });
-      this.logger.error(`sync-bootstrap упал: ${message}`);
+      this.logger.error(`sync-bootstrap failed: ${message}`);
       throw e;
     }
   }

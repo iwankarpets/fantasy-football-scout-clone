@@ -17,9 +17,9 @@ export interface DailySnapshotResult {
 }
 
 /**
- * Суточный снимок ключевых полей игроков (цена, статус, шанс сыграть, владение).
- * Читает таблицу players, к FPL не обращается.
- * За сутки (UTC) делается один снимок; force=true заменяет сегодняшний.
+ * Daily snapshot of key player fields (price, status, chance of playing, ownership).
+ * Reads from the players table, does not make requests to the FPL API.
+ * One snapshot is created per day (UTC); force=true replaces today's snapshot.
  */
 @Injectable()
 export class DailySnapshotJob {
@@ -44,16 +44,16 @@ export class DailySnapshotJob {
 
       if (exists && !opts.force) {
         await this.syncRuns.finish(runId, { status: 'skipped' });
-        this.logger.log('Снимок за сегодня уже есть, пропуск');
+        this.logger.log('Snapshot for today already exists, skipping');
         return { runId, status: 'skipped' };
       }
 
       const players = await this.players.getForSnapshot();
       if (players.length === 0) {
-        throw new Error('Таблица players пуста: сначала выполните sync/bootstrap');
+        throw new Error('The players table is empty: run sync/bootstrap first');
       }
 
-      // Удаление старого и вставка нового в одной транзакции
+      // Deleting the old and inserting the new in a single transaction
       const count = await this.dataSource.transaction(async (manager) => {
         if (exists) {
           await this.snapshots.deleteForDay(now, manager);
@@ -73,12 +73,12 @@ export class DailySnapshotJob {
         return count;
       });
 
-      this.logger.log(`Снимок готов: ${count} игроков`);
+      this.logger.log(`Snapshot ready: ${count} players`);
       return { runId, status: 'success', count };
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       await this.syncRuns.finish(runId, { status: 'failed', error: message });
-      this.logger.error(`daily-snapshot упал: ${message}`);
+      this.logger.error(`daily-snapshot failed: ${message}`);
       throw e;
     }
   }

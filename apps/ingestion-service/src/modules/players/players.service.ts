@@ -43,17 +43,17 @@ export class PlayersService {
 
       // Одна запись в player_changes на изменение, но одно событие на игрока и тип
       const byPlayer = new Map<number, PlayerChangeRow[]>();
-      for (const c of changes) {
-        const list = byPlayer.get(c.player_id) ?? [];
-        list.push(c);
-        byPlayer.set(c.player_id, list);
+      for (const change of changes) {
+        const list = byPlayer.get(change.player_id) ?? [];
+        list.push(change);
+        byPlayer.set(change.player_id, list);
       }
 
       for (const [playerId, list] of byPlayer) {
         const old = baselines.get(playerId)!;
         const next = rowsById.get(playerId)!;
 
-        if (list.some((c) => c.type === 'price')) {
+        if (list.some((change) => change.type === 'price')) {
           await this.outbox.add(
             PlayerPriceChangedV1,
             { player_id: playerId, old_price: old.now_cost, new_price: next.now_cost },
@@ -63,8 +63,8 @@ export class PlayersService {
         }
 
         const changed = list
-          .filter((c) => c.type !== 'price')
-          .map((c) => c.type as 'status' | 'news');
+          .filter((change) => change.type !== 'price')
+          .map((change) => change.type as 'status' | 'news');
         if (changed.length > 0) {
           await this.outbox.add(
             PlayerStatusChangedV1,
@@ -82,9 +82,7 @@ export class PlayersService {
           );
         }
       }
-      this.logger.log(
-        `Изменений у игроков: ${changes.length}, игроков затронуто: ${byPlayer.size}`,
-      );
+      this.logger.log(`Player changes: ${changes.length}, players affected: ${byPlayer.size}`);
     }
     return count;
   }

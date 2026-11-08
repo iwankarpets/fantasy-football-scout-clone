@@ -28,7 +28,7 @@ export class IngestionProcessor extends WorkerHost {
   }
 
   async process(job: Job): Promise<unknown> {
-    this.logger.log(`Задача ${job.name} (попытка ${job.attemptsMade + 1})`);
+    this.logger.log(`Job ${job.name} (attempt ${job.attemptsMade + 1})`);
     switch (job.name) {
       case JOB_SYNC_BOOTSTRAP:
         return this.bootstrap.run();
@@ -39,7 +39,7 @@ export class IngestionProcessor extends WorkerHost {
       case JOB_SYNC_PLAYER_HISTORY:
         return this.history.run({ onlyNewMatches: true });
       default:
-        throw new Error(`Неизвестная задача: ${job.name}`);
+        throw new Error(`Unknown job: ${job.name}`);
     }
   }
 }

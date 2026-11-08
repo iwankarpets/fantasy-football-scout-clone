@@ -17,8 +17,8 @@ export interface SyncFixturesResult {
 }
 
 /**
- * Загрузка /fixtures/: матчи, счёт, время начала, сложность для каждой команды.
- * Позже эту джобу вызовет BullMQ-процессор по расписанию.
+ * Loading /fixtures/: matches, score, kickoff time, difficulty for each team.
+ * Later, this job will be called by a BullMQ processor on a schedule.
  */
 @Injectable()
 export class SyncFixturesJob {
@@ -44,7 +44,7 @@ export class SyncFixturesJob {
 
       if (!opts.force && hash === (await this.syncRuns.lastSuccessHash(ENDPOINT))) {
         await this.syncRuns.finish(runId, { status: 'skipped', payloadHash: hash });
-        this.logger.log(`Ответ не изменился (хэш ${hash.slice(0, 8)}), загрузка пропущена`);
+        this.logger.log(`Response has not changed (hash ${hash.slice(0, 8)}), sync skipped`);
         return { runId, status: 'skipped' };
       }
 
@@ -68,12 +68,12 @@ export class SyncFixturesJob {
         return count;
       });
 
-      this.logger.log(`Готово: ${count} матчей`);
+      this.logger.log(`Done: ${count} matches`);
       return { runId, status: 'success', count };
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       await this.syncRuns.finish(runId, { status: 'failed', error: message, payloadHash: hash });
-      this.logger.error(`sync-fixtures упал: ${message}`);
+      this.logger.error(`sync-fixtures failed: ${message}`);
       throw e;
     }
   }

@@ -31,7 +31,7 @@ export class PlayerSnapshotsService {
     manager?: EntityManager,
   ): Promise<number> {
     return this.repository.insertMany(
-      players.map((p) => mapPlayerSnapshot(p, now)),
+      players.map((player) => mapPlayerSnapshot(player, now)),
       manager,
     );
   }

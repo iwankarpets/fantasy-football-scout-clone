@@ -6,10 +6,10 @@ import { AccessDeniedException } from '@app/common'; // TODO: поправьте
 /** Проверяет служебный ключ в заголовке x-internal-key. Пустой ключ в конфиге = всё закрыто. */
 @Injectable()
 export class InternalApiKeyGuard implements CanActivate {
-  private readonly expected: Buffer;
+  private readonly expectedKey: Buffer;
 
   constructor(config: ConfigService) {
-    this.expected = Buffer.from(config.get<string>('internalApiKey') ?? '');
+    this.expectedKey = Buffer.from(config.get<string>('internalApiKey') ?? '');
   }
 
   canActivate(context: ExecutionContext): boolean {
@@ -20,9 +20,9 @@ export class InternalApiKeyGuard implements CanActivate {
     const provided = Buffer.from(typeof header === 'string' ? header : '');
 
     const ok =
-      this.expected.length > 0 &&
-      provided.length === this.expected.length &&
-      timingSafeEqual(provided, this.expected);
+      this.expectedKey.length > 0 &&
+      provided.length === this.expectedKey.length &&
+      timingSafeEqual(provided, this.expectedKey);
 
     if (!ok) {
       throw new AccessDeniedException('Invalid internal API key');

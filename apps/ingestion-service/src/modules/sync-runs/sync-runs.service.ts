@@ -5,10 +5,10 @@ import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class SyncRunsService {
-  constructor(private readonly repository: SyncRunsRepository) {}
+  constructor(private readonly syncRunrepository: SyncRunsRepository) {}
 
   start(endpoint: string): Promise<number> {
-    return this.repository.create(endpoint);
+    return this.syncRunrepository.create(endpoint);
   }
 
   finish(
@@ -16,10 +16,10 @@ export class SyncRunsService {
     patch: { status: SyncRunStatus; itemsCount?: number; payloadHash?: string; error?: string },
     manager?: EntityManager,
   ): Promise<void> {
-    return this.repository.finish(id, patch, manager);
+    return this.syncRunrepository.finish(id, patch, manager);
   }
 
   lastSuccessHash(endpoint: string): Promise<string | null> {
-    return this.repository.findLastSuccessHash(endpoint);
+    return this.syncRunrepository.findLastSuccessHash(endpoint);
   }
 }
