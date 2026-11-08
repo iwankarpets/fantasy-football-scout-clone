@@ -8,11 +8,11 @@ import { assertTopology, DEAD_LETTER_EXCHANGE, EVENTS_EXCHANGE } from './topolog
 export type ParsedEvent = Extract<ParseResult, { ok: true }>['event'];
 
 export interface SubscribeOptions {
-  /** Своя очередь у каждого получателя, например 'analytics.events'. */
+  /** Each consumer has its own queue, e.g., 'analytics.events'. */
   queue: string;
-  /** Типы событий, например ['snapshot.ready', 'player.price_changed']. */
+  /** Event types, e.g., ['snapshot.ready', 'player.price_changed']. */
   routingKeys: string[];
-  /** Если бросит ошибку, сообщение уйдёт в DLQ. Идемпотентность (processed_events) делает сам получатель. */
+  /** If an error is thrown, the message goes to the DLQ. Idempotency (processed_events) is handled by the consumer itself. */
   handler: (event: ParsedEvent) => Promise<void>;
   prefetch?: number;
 }
@@ -28,12 +28,12 @@ export class RabbitService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     this.connection = connect([this.options.url]);
-    this.connection.on('connect', () => this.logger.log('RabbitMQ: подключено'));
+    this.connection.on('connect', () => this.logger.log('RabbitMQ: connected'));
     this.connection.on('disconnect', ({ err }) =>
-      this.logger.warn(`RabbitMQ: соединение потеряно: ${err?.message ?? 'unknown'}`),
+      this.logger.warn(`RabbitMQ: connection lost: ${err?.message ?? 'unknown'}`),
     );
 
-    // Не ждём подключения: сервис стартует, даже если брокер ещё недоступен
+    // Do not wait for connection: the service starts even if the broker is not yet available
     this.publisher = this.connection.createChannel({
       json: true,
       publishTimeout: this.options.publishTimeoutMs ?? 10_000,
@@ -42,8 +42,8 @@ export class RabbitService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Публикует конверт события. Промис завершается, когда брокер подтвердил приём,
-   * при недоступности брокера он отклоняется по таймауту (строка outbox останется неотправленной).
+   * Publishes the event envelope. The promise resolves when the broker confirms receipt;
+   * if the broker is unavailable, it rejects by timeout (the outbox row remains unsent).
    */
   async publish(event: { event_id: string; type: string; occurred_at: string }): Promise<void> {
     await this.publisher.publish(EVENTS_EXCHANGE, event.type, event, {
@@ -55,7 +55,7 @@ export class RabbitService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** Подписка получателя. Неверный формат или ошибка обработчика: nack без requeue, сообщение уходит в DLQ. */
+  /** Consumer subscription. Invalid format or handler error: nack without requeue, message goes to the DLQ. */
   subscribe(opts: SubscribeOptions): void {
     const wrapper = this.connection.createChannel({
       setup: async (ch: ConfirmChannel) => {
@@ -76,21 +76,21 @@ export class RabbitService implements OnModuleInit, OnModuleDestroy {
 
   private async onMessage(ch: ConfirmChannel, msg: ConsumeMessage | null, opts: SubscribeOptions) {
     if (!msg) {
-      return;
-    } // consumer отменён брокером
+      return; // consumer canceled by the broker
+    }
 
     let raw: unknown;
     try {
       raw = JSON.parse(msg.content.toString('utf8'));
     } catch {
-      this.logger.error(`[${opts.queue}] не JSON, в DLQ`);
+      this.logger.error(`[${opts.queue}] not JSON, sending to DLQ`);
       ch.nack(msg, false, false);
       return;
     }
 
     const parsed = parseEvent(raw);
     if (!parsed.ok) {
-      this.logger.error(`[${opts.queue}] неверный формат, в DLQ: ${parsed.reason}`);
+      this.logger.error(`[${opts.queue}] invalid format, sending to DLQ: ${parsed.reason}`);
       ch.nack(msg, false, false);
       return;
     }
@@ -100,7 +100,7 @@ export class RabbitService implements OnModuleInit, OnModuleDestroy {
       ch.ack(msg);
     } catch (e) {
       this.logger.error(
-        `[${opts.queue}] ошибка обработки ${parsed.event.type}: ${(e as Error).message}`,
+        `[${opts.queue}] error processing ${parsed.event.type}: ${(e as Error).message}`,
       );
       ch.nack(msg, false, false);
     }
