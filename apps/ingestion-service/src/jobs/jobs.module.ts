@@ -14,6 +14,7 @@ import { SnapshotsModule } from '../modules/snapshots/snapshots.module';
 import { DailySnapshotJob } from './daily-snapshot.job';
 import { EventsModule } from '../events/events.module';
 import { DeadlineCheckJob } from './deadline-check.job';
+import { OutboxCleanupJob } from './outbox-cleanup.job';
 
 /** Позже добавятся BullMQ-очередь и остальные джобы (history, snapshot, deadline). */
 @Module({
@@ -35,6 +36,7 @@ import { DeadlineCheckJob } from './deadline-check.job';
     SyncPlayerHistoryJob,
     DailySnapshotJob,
     DeadlineCheckJob,
+    OutboxCleanupJob,
   ],
   exports: [
     SyncBootstrapJob,
@@ -42,6 +44,7 @@ import { DeadlineCheckJob } from './deadline-check.job';
     SyncPlayerHistoryJob,
     DailySnapshotJob,
     DeadlineCheckJob,
+    OutboxCleanupJob,
   ],
 })
 export class JobsModule {}

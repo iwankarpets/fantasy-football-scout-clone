@@ -4,12 +4,14 @@ import { SnapshotReadyV1 } from './events/snapshot-ready.v1';
 import { PlayerStatusChangedV1 } from './events/player-status-changed.v1';
 import { PlayerPriceChangedV1 } from './events/player-price-changed.v1';
 import { DeadlineApproachingV1 } from './events/deadline-approaching.v1';
+import { GameweekFinishedV1 } from './events/gameweek-finished.v1';
 
 export const EVENT_DEFINITIONS = [
   SnapshotReadyV1,
   PlayerStatusChangedV1,
   PlayerPriceChangedV1,
   DeadlineApproachingV1,
+  GameweekFinishedV1,
 ] as const;
 
 export type EventType = (typeof EVENT_DEFINITIONS)[number]['type'];

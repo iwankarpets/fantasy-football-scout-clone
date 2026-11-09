@@ -15,6 +15,7 @@ import { SyncRunsModule } from './modules/sync-runs/sync-runs.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { BullModule } from '@nestjs/bullmq';
 import { MessagingModule } from '@app/messaging/messaging.module';
+import { InternalApiModule } from './modules/internal-api/internal-api.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { MessagingModule } from '@app/messaging/messaging.module';
     ChangesModule,
     SyncRunsModule,
     SchedulerModule,
+    InternalApiModule,
   ],
 })
 export class AppModule {}

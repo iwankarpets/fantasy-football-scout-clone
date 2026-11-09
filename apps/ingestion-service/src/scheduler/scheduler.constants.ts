@@ -7,6 +7,7 @@ export const JOB_SYNC_FIXTURES = 'sync-fixtures';
 export const JOB_DAILY_SNAPSHOT = 'daily-snapshot';
 export const JOB_SYNC_PLAYER_HISTORY = 'sync-player-history';
 export const JOB_DEADLINE_CHECK = 'deadline-check';
+export const JOB_OUTBOX_CLEANUP = 'outbox-cleanup';
 
 /** Задачи, которые ходят к FPL: при ошибке (в том числе 403) ждём подольше. */
 const NETWORK_JOB_OPTS: JobsOptions = {
@@ -69,6 +70,13 @@ export const SCHEDULES: ScheduleDef[] = [
     queue: DEADLINE_QUEUE,
     jobName: JOB_DEADLINE_CHECK,
     repeat: { every: 5 * 60_000 },
+    opts: LOCAL_JOB_OPTS,
+  },
+  {
+    id: 'outbox-cleanup-0300-utc',
+    queue: INGESTION_QUEUE,
+    jobName: JOB_OUTBOX_CLEANUP,
+    repeat: { pattern: '0 0 3 * * *', tz: 'UTC' },
     opts: LOCAL_JOB_OPTS,
   },
 ];

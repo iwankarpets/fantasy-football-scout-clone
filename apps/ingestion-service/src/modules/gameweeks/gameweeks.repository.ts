@@ -32,4 +32,11 @@ export class GameweeksRepository {
       order: { deadline_time_epoch: 'ASC' },
     });
   }
+
+  /** id тура -> был ли он завершён (finished && data_checked) до текущего upsert. */
+  async findCompletionStates(manager?: EntityManager): Promise<Map<number, boolean>> {
+    const repo = manager ? manager.getRepository(Gameweek) : this.repo;
+    const rows = await repo.find({ select: { id: true, finished: true, data_checked: true } });
+    return new Map(rows.map((row) => [row.id, row.finished && row.data_checked]));
+  }
 }

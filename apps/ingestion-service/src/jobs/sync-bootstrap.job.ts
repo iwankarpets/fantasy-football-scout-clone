@@ -57,7 +57,7 @@ export class SyncBootstrapJob {
         const counts = {
           teams: await this.teams.upsertFromApi(data.teams, manager),
           elementTypes: await this.elementTypes.upsertFromApi(data.element_types, manager),
-          gameweeks: await this.gameweeks.upsertFromApi(data.events, manager),
+          gameweeks: await this.gameweeks.upsertFromApi(data.events, manager, correlationId),
           players: await this.players.upsertFromApi(data.elements, manager, correlationId),
         };
         const total = counts.teams + counts.elementTypes + counts.gameweeks + counts.players;

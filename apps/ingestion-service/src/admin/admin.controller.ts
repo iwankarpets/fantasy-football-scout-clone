@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { SyncBootstrapJob } from '../jobs/sync-bootstrap.job';
 import { InternalApiKeyGuard } from './internal-key.guard';
@@ -6,6 +6,8 @@ import { SyncFixturesJob } from '../jobs/sync-fixtures.job';
 import { SyncPlayerHistoryJob } from '../jobs/sync-player-history.job';
 import { DailySnapshotJob } from '../jobs/daily-snapshot.job';
 import { SchedulerService } from '../scheduler/scheduler.service';
+import { DeadlineCheckJob } from '../jobs/deadline-check.job';
+import { OutboxCleanupJob } from '../jobs/outbox-cleanup.job';
 
 @ApiTags('admin')
 @ApiSecurity('internal-key')
@@ -18,6 +20,8 @@ export class AdminController {
     private readonly syncPlayerHistory: SyncPlayerHistoryJob,
     private readonly dailySnapshot: DailySnapshotJob,
     private readonly scheduler: SchedulerService,
+    private readonly deadlineCheck: DeadlineCheckJob,
+    private readonly outboxCleanup: OutboxCleanupJob,
   ) {}
 
   /** POST /admin/sync/bootstrap?force=true : force=true ignores hash match */
@@ -151,5 +155,46 @@ export class AdminController {
       onlyNewMatches: onlyNew === 'true',
       days: days ? Number(days) : undefined,
     });
+  }
+
+  /** POST /admin/deadline-check?now=2026-11-20T10:00:00Z : now нужен для проверки порогов */
+  @Post('deadline-check')
+  @ApiOperation({ summary: 'Run deadline check now (writes gameweek.deadline_approaching if due)' })
+  @ApiQuery({
+    name: 'now',
+    required: false,
+    type: String,
+    description: 'ISO date to simulate the current time (for testing thresholds)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'no_deadline | not_due | published | already_sent',
+  })
+  @ApiResponse({ status: 403, description: 'ACCESS_DENIED: invalid or missing x-internal-key' })
+  runDeadlineCheck(@Query('now') now?: string) {
+    const parsed = now ? new Date(now) : undefined;
+    if (parsed && Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException('Now must be a valid ISO date');
+    }
+    return this.deadlineCheck.run({ now: parsed });
+  }
+
+  /** POST /admin/outbox/cleanup?days=7 : удаляет отправленные события старше N дней */
+  @Post('outbox/cleanup')
+  @ApiOperation({ summary: 'Delete published outbox events older than the retention period' })
+  @ApiQuery({
+    name: 'days',
+    required: false,
+    type: Number,
+    description: 'Retention for regular events in days (default 7); dedup_key events keep 30',
+  })
+  @ApiResponse({ status: 201, description: 'Counts of deleted rows' })
+  @ApiResponse({ status: 403, description: 'ACCESS_DENIED: invalid or missing x-internal-key' })
+  runOutboxCleanup(@Query('days') days?: string) {
+    const parsed = days ? Number(days) : undefined;
+    if (parsed !== undefined && (!Number.isInteger(parsed) || parsed < 1)) {
+      throw new BadRequestException('days must be a positive integer');
+    }
+    return this.outboxCleanup.run({ retentionDays: parsed });
   }
 }

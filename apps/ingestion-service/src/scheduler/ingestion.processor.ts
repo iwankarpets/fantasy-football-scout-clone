@@ -8,10 +8,12 @@ import { SyncPlayerHistoryJob } from '../jobs/sync-player-history.job';
 import {
   INGESTION_QUEUE,
   JOB_DAILY_SNAPSHOT,
+  JOB_OUTBOX_CLEANUP,
   JOB_SYNC_BOOTSTRAP,
   JOB_SYNC_FIXTURES,
   JOB_SYNC_PLAYER_HISTORY,
 } from './scheduler.constants';
+import { OutboxCleanupJob } from '../jobs/outbox-cleanup.job';
 
 /** concurrency: 1 → задачи идут строго по одной, запросы к FPL не накладываются. */
 @Processor(INGESTION_QUEUE, { concurrency: 1 })
@@ -23,6 +25,7 @@ export class IngestionProcessor extends WorkerHost {
     private readonly fixtures: SyncFixturesJob,
     private readonly snapshot: DailySnapshotJob,
     private readonly history: SyncPlayerHistoryJob,
+    private readonly outboxCleanup: OutboxCleanupJob,
   ) {
     super();
   }
@@ -38,6 +41,8 @@ export class IngestionProcessor extends WorkerHost {
         return this.snapshot.run();
       case JOB_SYNC_PLAYER_HISTORY:
         return this.history.run({ onlyNewMatches: true });
+      case JOB_OUTBOX_CLEANUP:
+        return this.outboxCleanup.run();
       default:
         throw new Error(`Unknown job: ${job.name}`);
     }
