@@ -5,6 +5,9 @@ import { PlayerStatusChangedV1 } from './events/player-status-changed.v1';
 import { PlayerPriceChangedV1 } from './events/player-price-changed.v1';
 import { DeadlineApproachingV1 } from './events/deadline-approaching.v1';
 import { GameweekFinishedV1 } from './events/gameweek-finished.v1';
+import { UserCreatedV1 } from './events/user-created.v1';
+import { UserWatchlistChangedV1 } from './events/user-watchlist-changed.v1';
+import { UserSettingsChangedV1 } from './events/user-settings-changed.v1';
 
 export const EVENT_DEFINITIONS = [
   SnapshotReadyV1,
@@ -12,6 +15,9 @@ export const EVENT_DEFINITIONS = [
   PlayerPriceChangedV1,
   DeadlineApproachingV1,
   GameweekFinishedV1,
+  UserCreatedV1,
+  UserSettingsChangedV1,
+  UserWatchlistChangedV1,
 ] as const;
 
 export type EventType = (typeof EVENT_DEFINITIONS)[number]['type'];

@@ -6,3 +6,7 @@ export * from './events/player-status-changed.v1';
 export * from './events/player-price-changed.v1';
 export * from './events/deadline-approaching.v1';
 export * from './events/gameweek-finished.v1';
+export * from './events/user-created.v1';
+export * from './events/user-settings-changed.v1';
+export * from './events/user-watchlist-changed.v1';
+export * from './events/user-settings.shared';
