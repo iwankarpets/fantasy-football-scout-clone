@@ -60,14 +60,7 @@ export class RabbitService implements OnModuleInit, OnModuleDestroy {
     const wrapper = this.connection.createChannel({
       setup: async (ch: ConfirmChannel) => {
         await assertTopology(ch);
-        await ch.assertQueue(opts.queue, {
-          durable: true,
-          arguments: { 'x-dead-letter-exchange': DEAD_LETTER_EXCHANGE },
-        });
-        for (const key of opts.routingKeys) {
-          await ch.bindQueue(opts.queue, EVENTS_EXCHANGE, key);
-        }
-        await ch.prefetch(opts.prefetch ?? 10);
+        await ch.prefetch(opts.prefetch ?? 1);
         await ch.consume(opts.queue, (msg) => void this.onMessage(ch, msg, opts));
       },
     });
