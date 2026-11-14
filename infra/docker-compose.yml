@@ -68,7 +68,7 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/notification
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
-      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
       USER_SERVICE_URL: http://user-service:3002
     depends_on:
       postgres:
