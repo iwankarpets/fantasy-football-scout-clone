@@ -3,7 +3,7 @@ import { connect, AmqpConnectionManager, ChannelWrapper } from 'amqp-connection-
 import type { ConfirmChannel, ConsumeMessage } from 'amqplib';
 import { parseEvent, ParseResult } from '@app/contracts';
 import { MESSAGING_OPTIONS, MessagingOptions } from './messaging.options';
-import { assertTopology, DEAD_LETTER_EXCHANGE, EVENTS_EXCHANGE } from './topology';
+import { assertTopology, EVENTS_EXCHANGE } from './topology';
 
 export type ParsedEvent = Extract<ParseResult, { ok: true }>['event'];
 
@@ -11,7 +11,7 @@ export interface SubscribeOptions {
   /** Each consumer has its own queue, e.g., 'analytics.events'. */
   queue: string;
   /** Event types, e.g., ['snapshot.ready', 'player.price_changed']. */
-  routingKeys: string[];
+  //routingKeys: string[];
   /** If an error is thrown, the message goes to the DLQ. Idempotency (processed_events) is handled by the consumer itself. */
   handler: (event: ParsedEvent) => Promise<void>;
   prefetch?: number;

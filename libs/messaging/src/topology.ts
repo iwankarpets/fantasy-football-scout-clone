@@ -4,10 +4,13 @@ export const EVENTS_EXCHANGE = 'scout.events';
 export const DEAD_LETTER_EXCHANGE = 'scout.events.dlx';
 export const DEAD_LETTER_QUEUE = 'scout.events.dead';
 
+export const NOTIFICATION_QUEUE = 'notification.events';
+export const ANALYTICS_QUEUE = 'analytics.events';
+
 /** Очереди получателей и их привязки. Источник: таблица "Слушатели" в документе. */
 export const CONSUMER_BINDINGS = [
   {
-    queue: 'notification.events',
+    queue: NOTIFICATION_QUEUE,
     keys: [
       'user.created',
       'user.watchlist_changed',
@@ -19,7 +22,7 @@ export const CONSUMER_BINDINGS = [
     ],
   },
   {
-    queue: 'analytics.events',
+    queue: ANALYTICS_QUEUE,
     keys: [
       'snapshot.ready',
       'player.status_changed',
