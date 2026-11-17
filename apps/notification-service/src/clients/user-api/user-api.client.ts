@@ -1,22 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SettingsView, StartUserInput, StartUserResult } from './user-api.interfaces';
 
-export interface StartUserInput {
-  telegram_id: number;
-  username: string | null;
-  language: string | null;
-}
-
-export interface StartUserResult {
-  user: {
-    id: string;
-    telegram_id: number;
-    username: string | null;
-    language: string;
-    timezone: string;
-  };
-  created: boolean;
-}
+export type UpdateSettingsInput = Partial<SettingsView>;
 
 const TIMEOUT_MS = 3000;
 
@@ -32,19 +18,34 @@ export class UserApiClient {
 
   /** Находит или создаёт пользователя по telegram_id. Бросает ошибку, если сервис недоступен или вернул не 2xx. */
   async start(input: StartUserInput): Promise<StartUserResult> {
-    const res = await fetch(`${this.baseUrl}/internal/users/start`, {
-      method: 'POST',
+    return this.request<StartUserResult>('POST', '/internal/users/start', input);
+  }
+
+  async getSettings(userId: string): Promise<SettingsView> {
+    return this.request<SettingsView>('GET', `/internal/users/${userId}/settings`);
+  }
+
+  /** Частичное обновление: передаются только изменяемые поля. Возвращает настройки целиком. */
+  async updateSettings(userId: string, patch: UpdateSettingsInput): Promise<SettingsView> {
+    return this.request<SettingsView>('PATCH', `/internal/users/${userId}/settings`, patch);
+  }
+
+  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method,
       headers: {
         'content-type': 'application/json',
         'x-internal-key': this.apiKey,
       },
-      body: JSON.stringify(input),
+      body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
 
     if (!res.ok) {
-      throw new Error(`user-service responded ${res.status}`);
+      throw new Error(`user-service responded ${res.status} on ${method} ${path}`);
     }
-    return (await res.json()) as StartUserResult;
+    return (await res.json()) as T;
   }
 }
+
+export { SettingsView };

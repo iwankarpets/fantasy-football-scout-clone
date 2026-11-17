@@ -1,13 +1,13 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { GrammyError } from 'grammy';
 import { DataSource } from 'typeorm';
-import { formatNotification } from './message-formatter';
+import { formatNotification, toNotificationEvent } from './message-formatter';
 import { TelegramSender } from './telegram-sender';
 
 const INTERVAL_MS = 2000;
 const BATCH_SIZE = 20;
 const MAX_ATTEMPTS = 5;
-const PAUSE_BETWEEN_SENDS_MS = 50; // Telegram ограничивает частоту отправки
+const PAUSE_BETWEEN_SENDS_MS = 50; // Telegram rate limits message sending
 
 interface Row {
   id: string;
@@ -16,6 +16,7 @@ interface Row {
   attempts: number;
   user_id: string;
   telegram_chat_id: number;
+  timezone: string;
 }
 
 @Injectable()
@@ -52,8 +53,8 @@ export class DeliveryService implements OnApplicationBootstrap, OnModuleDestroy 
     try {
       const processed = await this.tick();
       if (processed === BATCH_SIZE) {
-        next = 0;
-      } // очередь не пуста
+        next = 0; // queue is not empty, fetch next batch immediately
+      }
     } catch (e) {
       this.logger.error(`Delivery tick failed: ${(e as Error).message}`);
     }
@@ -63,7 +64,7 @@ export class DeliveryService implements OnApplicationBootstrap, OnModuleDestroy 
   private async tick(): Promise<number> {
     return this.dataSource.transaction(async (m) => {
       const rows: Row[] = await m.query(
-        `SELECT n.id, n.type, n.payload, n.attempts, n.user_id, r.telegram_chat_id
+        `SELECT n.id, n.type, n.payload, n.attempts, n.user_id, r.telegram_chat_id, r.timezone
            FROM notifications n
            JOIN recipients r ON r.user_id = n.user_id
           WHERE n.status = 'queued' AND n.scheduled_at <= now() AND r.is_active = true
@@ -75,10 +76,13 @@ export class DeliveryService implements OnApplicationBootstrap, OnModuleDestroy 
 
       for (const row of rows) {
         try {
-          await this.sender.send(
-            Number(row.telegram_chat_id),
-            formatNotification(row.type, row.payload),
-          );
+          const event = toNotificationEvent(row.type, row.payload);
+          if (!event) {
+            this.logger.warn(`Unknown notification type "${row.type}" (id ${row.id})`);
+          }
+          const text = event ? formatNotification(event, row.timezone) : 'New notification';
+
+          await this.sender.send(Number(row.telegram_chat_id), text);
           await m.query(
             `UPDATE notifications SET status = 'sent', sent_at = now(), attempts = attempts + 1 WHERE id = $1`,
             [row.id],
@@ -93,7 +97,7 @@ export class DeliveryService implements OnApplicationBootstrap, OnModuleDestroy 
   }
 
   private async handleError(row: Row, e: Error, m: import('typeorm').EntityManager): Promise<void> {
-    // 403: пользователь заблокировал бота. Больше ему не пишем.
+    // 403: User blocked the bot. Stop sending messages to this user.
     if (e instanceof GrammyError && e.error_code === 403) {
       this.logger.warn(`User ${row.user_id} blocked the bot, deactivating`);
       await m.query(
@@ -115,7 +119,7 @@ export class DeliveryService implements OnApplicationBootstrap, OnModuleDestroy 
         [row.id, attempts, e.message],
       );
     } else {
-      // повтор позже, пауза растёт: 1, 2, 3... минуты
+      // Retry later, delay increases: 1, 2, 3... minutes
       await m.query(
         `UPDATE notifications SET attempts = $2, error = $3,
                 scheduled_at = now() + make_interval(mins => $2) WHERE id = $1`,

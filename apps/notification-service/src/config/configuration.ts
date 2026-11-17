@@ -22,4 +22,8 @@ export default () => ({
   userService: {
     baseUrl: process.env.USER_SERVICE_URL ?? 'http://localhost:3002',
   },
+  rateLimit: {
+    windowSeconds: parseInt(process.env.RATE_LIMIT_WINDOW_SECONDS ?? '10', 10),
+    maxCommands: parseInt(process.env.RATE_LIMIT_MAX_COMMANDS ?? '10', 10),
+  },
 });

@@ -34,4 +34,24 @@ export class NotificationsRepository {
     );
     return rows.length;
   }
+
+  async createDeadlineReminders(
+    p: { gameweek: number; hoursLeft: number; payload: Record<string, unknown> },
+    m: EntityManager,
+  ): Promise<number> {
+    const rows: unknown[] = await m.query(
+      `INSERT INTO notifications (user_id, type, dedup_key, payload)
+       SELECT r.user_id,
+              'deadline'::varchar,
+              r.user_id::text || ':deadline:' || $1::int::text || ':' || $2::int::text,
+              $3::jsonb
+         FROM recipients r
+        WHERE r.is_active = true
+          AND $2::int = ANY(r.deadline_reminder_hours)
+       ON CONFLICT (dedup_key) DO NOTHING
+       RETURNING id`,
+      [p.gameweek, p.hoursLeft, JSON.stringify(p.payload)],
+    );
+    return rows.length;
+  }
 }

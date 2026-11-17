@@ -2,11 +2,13 @@ import { Module } from '@nestjs/common';
 import { BotService } from './bot.service';
 import { BOT_COMMANDS, BotCommand, COMMANDS } from './commands';
 import { UserApiModule } from '../clients/user-api/user-api.module';
+import { RateLimitService } from './rate-limit/rate-limit.service';
 
 @Module({
   imports: [UserApiModule],
   providers: [
     BotService,
+    RateLimitService,
     ...COMMANDS,
     {
       provide: BOT_COMMANDS,

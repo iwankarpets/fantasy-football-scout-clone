@@ -6,6 +6,7 @@ import configuration from './config/configuration';
 import { Notification, ProcessedEvent, Recipient, WatchRef } from './database/entities';
 import { MessagingModule } from '@app/messaging';
 import { EventsModule } from './events/events.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { EventsModule } from './events/events.module';
         url: config.getOrThrow<string>('rabbitmq.url'),
       }),
     }),
+    RedisModule,
     EventsModule,
     BotModule,
   ],

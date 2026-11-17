@@ -4,6 +4,7 @@ import { Bot, GrammyError, HttpError } from 'grammy';
 import { autoRetry } from '@grammyjs/auto-retry';
 import { runWithCorrelationId, toUserMessage } from '@app/common';
 import { BOT_COMMANDS, BotCommand } from './commands';
+import { RateLimitService } from './rate-limit/rate-limit.service';
 
 @Injectable()
 export class BotService implements OnModuleInit, OnModuleDestroy {
@@ -13,8 +14,9 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
   constructor(
     config: ConfigService,
     @Inject(BOT_COMMANDS) private readonly commands: BotCommand[],
+    private readonly rateLimit: RateLimitService,
   ) {
-    this.bot = new Bot(config.getOrThrow<string>('BOT_TOKEN'));
+    this.bot = new Bot(config.getOrThrow<string>('bot.token'));
   }
 
   onModuleInit() {
@@ -23,6 +25,7 @@ export class BotService implements OnModuleInit, OnModuleDestroy {
 
     // Каждое сообщение обрабатывается со своим correlation ID. Должно идти до команд.
     this.bot.use((ctx, next) => runWithCorrelationId(() => next()));
+    this.bot.use(this.rateLimit.middleware());
 
     // Все команды из списка COMMANDS
     for (const command of this.commands) {
