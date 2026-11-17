@@ -62,8 +62,8 @@ export class DeliveryService implements OnApplicationBootstrap, OnModuleDestroy 
   }
 
   private async tick(): Promise<number> {
-    return this.dataSource.transaction(async (m) => {
-      const rows: Row[] = await m.query(
+    return this.dataSource.transaction(async (manager) => {
+      const rows: Row[] = await manager.query(
         `SELECT n.id, n.type, n.payload, n.attempts, n.user_id, r.telegram_chat_id, r.timezone
            FROM notifications n
            JOIN recipients r ON r.user_id = n.user_id
@@ -83,12 +83,12 @@ export class DeliveryService implements OnApplicationBootstrap, OnModuleDestroy 
           const text = event ? formatNotification(event, row.timezone) : 'New notification';
 
           await this.sender.send(Number(row.telegram_chat_id), text);
-          await m.query(
+          await manager.query(
             `UPDATE notifications SET status = 'sent', sent_at = now(), attempts = attempts + 1 WHERE id = $1`,
             [row.id],
           );
         } catch (e) {
-          await this.handleError(row, e as Error, m);
+          await this.handleError(row, e as Error, manager);
         }
         await new Promise((r) => setTimeout(r, PAUSE_BETWEEN_SENDS_MS));
       }
@@ -96,15 +96,19 @@ export class DeliveryService implements OnApplicationBootstrap, OnModuleDestroy 
     });
   }
 
-  private async handleError(row: Row, e: Error, m: import('typeorm').EntityManager): Promise<void> {
+  private async handleError(
+    row: Row,
+    e: Error,
+    manager: import('typeorm').EntityManager,
+  ): Promise<void> {
     // 403: User blocked the bot. Stop sending messages to this user.
     if (e instanceof GrammyError && e.error_code === 403) {
       this.logger.warn(`User ${row.user_id} blocked the bot, deactivating`);
-      await m.query(
+      await manager.query(
         `UPDATE recipients SET is_active = false, updated_at = now() WHERE user_id = $1`,
         [row.user_id],
       );
-      await m.query(
+      await manager.query(
         `UPDATE notifications SET status = 'failed', error = $2, attempts = attempts + 1 WHERE id = $1`,
         [row.id, 'bot blocked'],
       );
@@ -114,13 +118,13 @@ export class DeliveryService implements OnApplicationBootstrap, OnModuleDestroy 
     const attempts = row.attempts + 1;
     this.logger.warn(`Send ${row.id} failed (attempt ${attempts}): ${e.message}`);
     if (attempts >= MAX_ATTEMPTS) {
-      await m.query(
+      await manager.query(
         `UPDATE notifications SET status = 'failed', attempts = $2, error = $3 WHERE id = $1`,
         [row.id, attempts, e.message],
       );
     } else {
       // Retry later, delay increases: 1, 2, 3... minutes
-      await m.query(
+      await manager.query(
         `UPDATE notifications SET attempts = $2, error = $3,
                 scheduled_at = now() + make_interval(mins => $2) WHERE id = $1`,
         [row.id, attempts, e.message],

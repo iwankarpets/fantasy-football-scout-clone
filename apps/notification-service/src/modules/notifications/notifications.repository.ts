@@ -16,9 +16,9 @@ export class NotificationsRepository {
       eventId: string;
       payload: Record<string, unknown>;
     },
-    m: EntityManager,
+    manager: EntityManager,
   ): Promise<number> {
-    const rows: unknown[] = await m.query(
+    const rows: unknown[] = await manager.query(
       `INSERT INTO notifications (user_id, type, dedup_key, payload)
    SELECT r.user_id, $2::varchar,
           r.user_id::text || ':' || $2::text || ':' || $3::text,
@@ -37,9 +37,9 @@ export class NotificationsRepository {
 
   async createDeadlineReminders(
     p: { gameweek: number; hoursLeft: number; payload: Record<string, unknown> },
-    m: EntityManager,
+    manager: EntityManager,
   ): Promise<number> {
-    const rows: unknown[] = await m.query(
+    const rows: unknown[] = await manager.query(
       `INSERT INTO notifications (user_id, type, dedup_key, payload)
        SELECT r.user_id,
               'deadline'::varchar,

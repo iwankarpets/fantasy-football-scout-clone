@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { ParsedEvent } from '@app/messaging';
 import { NotificationsRepository } from './notifications.repository';
+import { PLAYER_PRICE_CHANGED, PLAYER_STATUS_CHANGED } from '@app/contracts';
 
 @Injectable()
 export class PlayerEventsService {
@@ -9,36 +10,36 @@ export class PlayerEventsService {
 
   constructor(private readonly notifications: NotificationsRepository) {}
 
-  async apply(event: ParsedEvent, m: EntityManager): Promise<void> {
+  async apply(event: ParsedEvent, manager: EntityManager): Promise<void> {
     switch (event.type) {
-      case 'player.status_changed': {
-        const d = event.data;
+      case PLAYER_STATUS_CHANGED: {
+        const data = event.data;
         const created = await this.notifications.createForWatchers(
           {
-            playerId: d.player_id,
+            playerId: data.player_id,
             type: 'player_status',
             settingColumn: 'notify_injuries',
             eventId: event.event_id,
-            payload: { ...d },
+            payload: { ...data },
           },
-          m,
+          manager,
         );
-        this.logger.log(`player ${d.player_id} status: ${created} notifications queued`);
+        this.logger.log(`player ${data.player_id} status: ${created} notifications queued`);
         break;
       }
-      case 'player.price_changed': {
-        const d = event.data;
+      case PLAYER_PRICE_CHANGED: {
+        const data = event.data;
         const created = await this.notifications.createForWatchers(
           {
-            playerId: d.player_id,
+            playerId: data.player_id,
             type: 'player_price',
             settingColumn: 'notify_price',
             eventId: event.event_id,
-            payload: { ...d },
+            payload: { ...data },
           },
-          m,
+          manager,
         );
-        this.logger.log(`player ${d.player_id} price: ${created} notifications queued`);
+        this.logger.log(`player ${data.player_id} price: ${created} notifications queued`);
         break;
       }
       default:

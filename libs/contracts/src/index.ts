@@ -10,3 +10,4 @@ export * from './events/user-created.v1';
 export * from './events/user-settings-changed.v1';
 export * from './events/user-watchlist-changed.v1';
 export * from './events/user-settings.shared';
+export * from './events/events';

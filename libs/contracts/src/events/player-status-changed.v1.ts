@@ -1,12 +1,13 @@
 import { z } from 'zod';
 import { defineEvent } from '../envelope';
+import { PLAYER_STATUS_CHANGED } from './events';
 
 export const PLAYER_STATUSES = ['a', 'd', 'i', 's', 'u'] as const;
 
 export type PlayerStatus = (typeof PLAYER_STATUSES)[number];
 
 export const PlayerStatusChangedV1 = defineEvent(
-  'player.status_changed',
+  PLAYER_STATUS_CHANGED,
   1,
   z.object({
     player_id: z.number().int().positive(),

@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { defineEvent } from '../envelope';
 import { notificationSettingsSchema } from './user-settings.shared';
+import { USER_SETTINGS_CHANGED } from './events';
 
 /** Все текущие значения целиком: получатель просто перезаписывает свою копию. */
 export const UserSettingsChangedV1 = defineEvent(
-  'user.settings_changed',
+  USER_SETTINGS_CHANGED,
   1,
   notificationSettingsSchema.extend({
     user_id: z.uuid(),

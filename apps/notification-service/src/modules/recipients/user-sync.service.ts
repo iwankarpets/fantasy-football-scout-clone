@@ -3,6 +3,7 @@ import { EntityManager } from 'typeorm';
 import { ParsedEvent } from '@app/messaging';
 import { WatchRefsRepository } from '../watch-refs/watch-refs.repository';
 import { RecipientsRepository } from './recipients.repository';
+import { USER_CREATED, USER_SETTINGS_CHANGED, USER_WATCHLIST_CHANGED } from '@app/contracts';
 
 @Injectable()
 export class UserSyncService {
@@ -13,37 +14,37 @@ export class UserSyncService {
     private readonly watchRefs: WatchRefsRepository,
   ) {}
 
-  async apply(event: ParsedEvent, m: EntityManager): Promise<void> {
+  async apply(event: ParsedEvent, manager: EntityManager): Promise<void> {
     switch (event.type) {
-      case 'user.created': {
-        const d = event.data;
+      case USER_CREATED: {
+        const data = event.data;
         await this.recipients.upsert(
           {
-            user_id: d.user_id,
+            user_id: data.user_id,
             // допущение: для личных чатов chat_id равен telegram_id
-            telegram_chat_id: d.telegram_id,
-            timezone: d.timezone,
-            language: d.language,
-            ...d.settings,
+            telegram_chat_id: data.telegram_id,
+            timezone: data.timezone,
+            language: data.language,
+            ...data.settings,
           },
-          m,
+          manager,
         );
         break;
       }
-      case 'user.settings_changed': {
+      case USER_SETTINGS_CHANGED: {
         const { user_id, ...rest } = event.data;
-        const updated = await this.recipients.updateSettings({ user_id, ...rest }, m);
+        const updated = await this.recipients.updateSettings({ user_id, ...rest }, manager);
         if (updated === 0) {
           this.logger.warn(`settings_changed for unknown recipient ${user_id}`);
         }
         break;
       }
-      case 'user.watchlist_changed': {
+      case USER_WATCHLIST_CHANGED: {
         const { user_id, player_id, action } = event.data;
         if (action === 'added') {
-          await this.watchRefs.add(user_id, player_id, m);
+          await this.watchRefs.add(user_id, player_id, manager);
         } else {
-          await this.watchRefs.remove(user_id, player_id, m);
+          await this.watchRefs.remove(user_id, player_id, manager);
         }
         break;
       }

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { defineEvent } from '../envelope';
+import { GAMWEEK_DEADLINE_APPROACHING } from './events';
 
 /**
  * hours_left это порог напоминания (24 или 3), а не фактический остаток:
@@ -7,7 +8,7 @@ import { defineEvent } from '../envelope';
  * Фактическое время получатель считает по deadline_at.
  */
 export const DeadlineApproachingV1 = defineEvent(
-  'gameweek.deadline_approaching',
+  GAMWEEK_DEADLINE_APPROACHING,
   1,
   z.object({
     gameweek_number: z.number().int().positive(),

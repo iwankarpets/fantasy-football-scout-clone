@@ -21,9 +21,9 @@ export interface DeadlinePayload {
 
 // 2. Создаем объединение, где type — это "разметка"
 export type NotificationEvent =
-  | { type: 'player_status'; p: PlayerStatusPayload }
-  | { type: 'player_price'; p: PlayerPricePayload }
-  | { type: 'deadline'; p: DeadlinePayload };
+  | { type: 'player_status'; payload: PlayerStatusPayload }
+  | { type: 'player_price'; payload: PlayerPricePayload }
+  | { type: 'deadline'; payload: DeadlinePayload };
 
 const STATUS: Record<string, string> = {
   a: 'available',
@@ -40,7 +40,7 @@ export function toNotificationEvent(
   payload: Record<string, unknown>,
 ): NotificationEvent | null {
   if ((KNOWN_TYPES as readonly string[]).includes(type)) {
-    return { type, p: payload } as unknown as NotificationEvent;
+    return { type, payload } as unknown as NotificationEvent;
   }
   return null;
 }
@@ -49,32 +49,34 @@ export function toNotificationEvent(
 export function formatNotification(event: NotificationEvent, timezone = 'UTC'): string {
   if (event.type === 'deadline') {
     return (
-      `⏰ ${event.p.hours_left}h left until Gameweek ${event.p.gameweek_number} deadline.\n` +
-      `Deadline: ${formatDeadline(event.p.deadline_at, timezone)}`
+      `⏰ ${event.payload.hours_left}h left until Gameweek ${event.payload.gameweek_number} deadline.\n` +
+      `Deadline: ${formatDeadline(event.payload.deadline_at, timezone)}`
     );
   }
 
   if (event.type === 'player_status') {
-    const { p } = event;
-    const changed = p.changed ?? ['status'];
-    const status = STATUS[p.new_status] ?? p.new_status;
+    const { payload } = event;
+    const changed = payload.changed ?? ['status'];
+    const status = STATUS[payload.new_status] ?? payload.new_status;
     const chance =
-      p.chance_next_round === null ? '' : `\nChance of playing next round: ${p.chance_next_round}%`;
-    const news = p.news ? `\n${p.news}` : '';
+      payload.chance_next_round === null
+        ? ''
+        : `\nChance of playing next round: ${payload.chance_next_round}%`;
+    const news = payload.news ? `\n${payload.news}` : '';
     const head = changed.includes('status')
-      ? `⚠️ Player #${p.player_id}: status changed to "${status}".`
-      : `📰 Player #${p.player_id}: new update.`;
+      ? `⚠️ Player #${payload.player_id}: status changed to "${status}".`
+      : `📰 Player #${payload.player_id}: new update.`;
 
     return `${head}${chance}${news}`;
   }
 
   if (event.type === 'player_price') {
-    const { p } = event;
-    const oldP = (p.old_price / 10).toFixed(1);
-    const newP = (p.new_price / 10).toFixed(1);
-    const arrow = p.new_price > p.old_price ? '📈' : '📉';
+    const { payload } = event;
+    const oldP = (payload.old_price / 10).toFixed(1);
+    const newP = (payload.new_price / 10).toFixed(1);
+    const arrow = payload.new_price > payload.old_price ? '📈' : '📉';
 
-    return `${arrow} Player #${p.player_id}: price ${oldP} → ${newP}`;
+    return `${arrow} Player #${payload.player_id}: price ${oldP} → ${newP}`;
   }
 
   return 'New notification';

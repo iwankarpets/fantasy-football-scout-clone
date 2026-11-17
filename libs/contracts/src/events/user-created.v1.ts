@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { defineEvent } from '../envelope';
 import { notificationSettingsSchema } from './user-settings.shared';
+import { USER_CREATED } from './events';
 
 export const UserCreatedV1 = defineEvent(
-  'user.created',
+  USER_CREATED,
   1,
   z.object({
     user_id: z.uuid(),
