@@ -5,6 +5,7 @@ import { Player } from '../../database/entities/player.entity';
 import { upsertInChunks } from '../../database/upsert.util';
 import { PlayerBaseline } from '../changes/player-changes.detector';
 import { PlayerSnapshotSource } from '../snapshots/player-snapshots.mapper';
+import { PlayerSearchResult } from './player.interfaces';
 
 @Injectable()
 export class PlayersRepository {
@@ -57,5 +58,30 @@ export class PlayersRepository {
       [days],
     );
     return rows.map((r) => r.id);
+  }
+
+  async search(query: string, limit: number): Promise<PlayerSearchResult[]> {
+    // Спецсимволы LIKE в тексте пользователя ищем как обычные символы
+    const escaped = query.replace(/[\\%_]/g, '\\$&');
+
+    return this.repo.query(
+      `SELECT p.id,
+              p.web_name,
+              t.short_name AS team,
+              et.singular_name_short AS position,
+              p.status,
+              p.now_cost
+         FROM players p
+         JOIN teams t ON t.id = p.team
+         JOIN element_types et ON et.id = p.element_type
+        WHERE p.web_name ILIKE $1
+           OR (p.first_name || ' ' || p.second_name) ILIKE $1
+        ORDER BY (lower(p.web_name) = lower($2)) DESC,
+                 (p.web_name ILIKE $3) DESC,
+                 p.total_points DESC,
+                 p.id
+        LIMIT $4`,
+      [`%${escaped}%`, query, `${escaped}%`, limit],
+    );
   }
 }

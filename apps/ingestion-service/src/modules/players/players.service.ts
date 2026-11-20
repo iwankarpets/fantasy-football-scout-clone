@@ -12,6 +12,7 @@ import {
 } from '@app/contracts/events/player-status-changed.v1';
 import { PlayerPriceChangedV1 } from '@app/contracts/events/player-price-changed.v1';
 import { OutboxService } from '../../events/outbox/outbox.service';
+import { PlayerSearchResult } from './player.interfaces';
 
 @Injectable()
 export class PlayersService {
@@ -97,5 +98,9 @@ export class PlayersService {
 
   getIdsWithNewMatches(days = 3): Promise<number[]> {
     return this.playerRepository.findIdsWithNewMatches(days);
+  }
+
+  search(query: string, limit: number): Promise<PlayerSearchResult[]> {
+    return this.playerRepository.search(query, limit);
   }
 }

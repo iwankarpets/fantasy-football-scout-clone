@@ -7,14 +7,25 @@ import { assertTopology, EVENTS_EXCHANGE } from './topology';
 
 export type ParsedEvent = Extract<ParseResult, { ok: true }>['event'];
 
+const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_RETRY_DELAY_MS = 1000;
+
 export interface SubscribeOptions {
   /** Each consumer has its own queue, e.g., 'analytics.events'. */
   queue: string;
   /** Event types, e.g., ['snapshot.ready', 'player.price_changed']. */
   //routingKeys: string[];
-  /** If an error is thrown, the message goes to the DLQ. Idempotency (processed_events) is handled by the consumer itself. */
+  /**
+   * If the handler throws, it is retried (maxAttempts in total, with a growing pause).
+   * After the last failed attempt the message goes to the DLQ.
+   * Retries are safe: idempotency (processed_events) is handled by the consumer itself.
+   */
   handler: (event: ParsedEvent) => Promise<void>;
   prefetch?: number;
+  /** Total number of handler attempts, including the first one. Default 3; 1 disables retries. */
+  maxAttempts?: number;
+  /** Pause before the second attempt in ms; doubles on every next attempt. Default 1000. */
+  retryDelayMs?: number;
 }
 
 @Injectable()
@@ -55,7 +66,7 @@ export class RabbitService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** Consumer subscription. Invalid format or handler error: nack without requeue, message goes to the DLQ. */
+  /** Consumer subscription. Invalid format: nack without requeue (DLQ). Handler error: retries, then DLQ. */
   subscribe(opts: SubscribeOptions): void {
     const wrapper = this.connection.createChannel({
       setup: async (ch: ConfirmChannel) => {
@@ -77,25 +88,59 @@ export class RabbitService implements OnModuleInit, OnModuleDestroy {
       raw = JSON.parse(msg.content.toString('utf8'));
     } catch {
       this.logger.error(`[${opts.queue}] not JSON, sending to DLQ`);
-      ch.nack(msg, false, false);
+      this.settle(() => ch.nack(msg, false, false), opts.queue);
       return;
     }
 
     const parsed = parseEvent(raw);
     if (!parsed.ok) {
       this.logger.error(`[${opts.queue}] invalid format, sending to DLQ: ${parsed.reason}`);
-      ch.nack(msg, false, false);
+      this.settle(() => ch.nack(msg, false, false), opts.queue);
       return;
     }
 
-    try {
-      await opts.handler(parsed.event);
-      ch.ack(msg);
-    } catch (e) {
+    const maxAttempts = Math.max(1, opts.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
+    const baseDelayMs = opts.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
+    let lastError: Error | undefined;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await opts.handler(parsed.event);
+        lastError = undefined;
+        break;
+      } catch (e) {
+        lastError = e as Error;
+        if (attempt < maxAttempts) {
+          const delay = baseDelayMs * 2 ** (attempt - 1);
+          this.logger.warn(
+            `[${opts.queue}] ${parsed.event.type} failed (attempt ${attempt}/${maxAttempts}), retry in ${delay} ms: ${lastError.message}`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    if (lastError) {
       this.logger.error(
-        `[${opts.queue}] error processing ${parsed.event.type}: ${(e as Error).message}`,
+        `[${opts.queue}] error processing ${parsed.event.type} after ${maxAttempts} attempts, sending to DLQ: ${lastError.message}`,
       );
-      ch.nack(msg, false, false);
+      this.settle(() => ch.nack(msg, false, false), opts.queue);
+    } else {
+      this.settle(() => ch.ack(msg), opts.queue);
+    }
+  }
+
+  /**
+   * ack/nack throws if the channel closed while the handler was running (connection lost).
+   * The broker redelivers such a message itself, so it is enough to log it.
+   */
+  private settle(action: () => void, queue: string): void {
+    try {
+      action();
+    } catch (e) {
+      this.logger.warn(
+        `[${queue}] could not ack/nack, broker will redeliver: ${(e as Error).message}`,
+      );
     }
   }
 

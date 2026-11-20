@@ -1,20 +1,35 @@
 import { NestFactory } from '@nestjs/core';
-import { AllExceptionsFilter, createLogger } from '@app/common';
+import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AllExceptionsFilter, createLogger } from '@app/common'; // TODO: adjust the path for your libs alias
 import { AppModule } from './app.module';
 
 const logger = createLogger('analytics-service');
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { logger });
-  app.enableShutdownHooks();
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(logger);
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  const port = Number(process.env.PORT ?? 3002);
+  if (process.env.NODE_ENV !== 'production') {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder()
+        .setTitle('Analytics service')
+        .setDescription('Internal endpoints analytics')
+        .setVersion('1.0')
+        .addApiKey({ type: 'apiKey', name: 'x-internal-key', in: 'header' }, 'internal-key')
+        .build(),
+    );
+    SwaggerModule.setup('docs', app, document);
+  }
+
+  const port = app.get(ConfigService).getOrThrow<number>('port');
   await app.listen(port);
-  logger.log(`Listen port: ${port}`, 'bootstrap');
+  logger.log(`Service started on port ${port}`, 'Bootstrap');
 }
 
-bootstrap().catch((e) => {
-  logger.fatal(e, 'bootstrap');
+bootstrap().catch((err) => {
+  logger.fatal(err, 'Bootstrap');
   process.exit(1);
 });
