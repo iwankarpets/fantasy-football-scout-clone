@@ -4,7 +4,7 @@ import {
   IngestionApiClient,
   MAX_ROUND_SPAN,
 } from '../../clients/ingestion-api/ingestion-api.client';
-import { bulkUpsert } from './bulk.upsert';
+
 import {
   ELEMENT_TYPES,
   FIXTURES,
@@ -13,6 +13,7 @@ import {
   PLAYERS,
   TEAMS,
 } from './sync.tables';
+import { bulkUpsert } from './bulk.upsert';
 
 export interface SyncScope {
   /** Справочники: типы позиций, команды, туры, игроки, матчи. */
@@ -86,12 +87,12 @@ export class SyncService {
       this.ingestion.fixtures(),
     ]);
 
-    return this.ds.transaction(async (manager) => ({
-      element_types: await bulkUpsert(manager, ELEMENT_TYPES, elementTypes),
-      teams: await bulkUpsert(manager, TEAMS, teams),
-      gameweeks: await bulkUpsert(manager, GAMEWEEKS, gameweeks),
-      players: await bulkUpsert(manager, PLAYERS, players),
-      fixtures: await bulkUpsert(manager, FIXTURES, fixtures),
+    return this.ds.transaction(async (m) => ({
+      element_types: await bulkUpsert(m, ELEMENT_TYPES, elementTypes),
+      teams: await bulkUpsert(m, TEAMS, teams),
+      gameweeks: await bulkUpsert(m, GAMEWEEKS, gameweeks),
+      players: await bulkUpsert(m, PLAYERS, players),
+      fixtures: await bulkUpsert(m, FIXTURES, fixtures),
     }));
   }
 
@@ -125,9 +126,7 @@ export class SyncService {
     for (let start = from; start <= upto; start += MAX_ROUND_SPAN) {
       const end = Math.min(upto, start + MAX_ROUND_SPAN - 1);
       const batch = await this.ingestion.playerStats(start, end);
-      rows += await this.ds.transaction((manager) =>
-        bulkUpsert(manager, PLAYER_GAMEWEEK_STATS, batch),
-      );
+      rows += await this.ds.transaction((m) => bulkUpsert(m, PLAYER_GAMEWEEK_STATS, batch));
     }
     return { rows, from, to: upto };
   }

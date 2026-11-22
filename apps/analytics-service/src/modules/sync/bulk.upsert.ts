@@ -1,5 +1,19 @@
 import { EntityManager } from 'typeorm';
-import { TableSpec } from './sync.tables';
+
+/**
+ * Описание таблицы для массовой записи: имя, колонки с типами и первичный ключ.
+ * Значения подставляются в SQL строкой, поэтому приходят только из констант
+ * в коде, но никогда из внешнего ввода.
+ */
+export interface TableSpec {
+  table: string;
+  /** Колонки в формате «имя тип». */
+  columns: string[];
+  /** Колонки первичного ключа (для ON CONFLICT). */
+  pk: string[];
+  /** Колонка, в которую пишется время записи. По умолчанию synced_at. */
+  stampColumn?: string;
+}
 
 /**
  * Массовый upsert одним запросом. Строки передаются одним jsonb-параметром
@@ -7,7 +21,7 @@ import { TableSpec } from './sync.tables';
  * Postgres не мешает, а числа и даты в строковом виде приводятся к типам колонок.
  *
  * Если в строке нет поля, которое колонка требует (NOT NULL), запрос упадёт:
- * это сигнал, что контракт ответа Ingestion разошёлся с таблицей.
+ * это сигнал, что данные разошлись с таблицей.
  */
 export async function bulkUpsert(
   manager: EntityManager,
@@ -18,16 +32,17 @@ export async function bulkUpsert(
     return 0;
   }
 
-  const names = spec.columns.map((column) => column.split(' ')[0]);
-  const updatable = names.filter((name) => !spec.pk.includes(name));
+  const stamp = spec.stampColumn ?? 'synced_at';
+  const names = spec.columns.map((c) => c.split(' ')[0]);
+  const updatable = names.filter((n) => !spec.pk.includes(n));
 
   const sql = `
-    INSERT INTO ${spec.table} (${names.join(', ')}, synced_at)
-    SELECT ${names.map((name) => `t.${name}`).join(', ')}, now()
+    INSERT INTO ${spec.table} (${names.join(', ')}, ${stamp})
+    SELECT ${names.map((n) => `t.${n}`).join(', ')}, now()
     FROM jsonb_to_recordset($1::jsonb) AS t(${spec.columns.join(', ')})
     ON CONFLICT (${spec.pk.join(', ')}) DO UPDATE SET
-      ${updatable.map((name) => `${name} = EXCLUDED.${name}`).join(',\n      ')},
-      synced_at = now()
+      ${updatable.map((n) => `${n} = EXCLUDED.${n}`).join(',\n      ')},
+      ${stamp} = now()
   `;
 
   await manager.query(sql, [JSON.stringify(rows)]);

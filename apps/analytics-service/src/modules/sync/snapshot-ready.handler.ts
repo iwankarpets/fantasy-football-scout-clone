@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { MetricsService } from '../metrics/metrics.service';
 import { scopeFromUpdated, SyncService } from './sync.service';
 
 /** Минимальный вид data события snapshot.ready (см. SnapshotReadyV1 в libs/contracts). */
@@ -22,6 +23,7 @@ export class SnapshotReadyHandler {
   constructor(
     private readonly ds: DataSource,
     private readonly sync: SyncService,
+    private readonly metrics: MetricsService,
   ) {}
 
   async handle(eventId: string, data: SnapshotReadyData): Promise<void> {
@@ -35,7 +37,7 @@ export class SnapshotReadyHandler {
     const scope = scopeFromUpdated(data.updated);
     if (scope.reference || scope.history) {
       await this.sync.run(scope);
-      // TODO: после успешной синхронизации запускать пересчёт метрик.
+      await this.metrics.recalculate();
     }
 
     await this.ds.query(

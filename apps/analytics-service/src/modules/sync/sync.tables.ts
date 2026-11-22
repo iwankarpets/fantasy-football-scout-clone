@@ -1,17 +1,11 @@
+import { TableSpec } from './bulk.upsert';
+
 /**
  * Описание таблиц-копий: имя таблицы, колонки с типами и первичный ключ.
  * Имена колонок совпадают с полями ответов /internal/* в ingestion-service.
  * Значения подставляются в SQL строкой, поэтому приходят только из этих констант,
  * но никогда из внешнего ввода.
  */
-export interface TableSpec {
-  table: string;
-  /** Колонки в формате «имя тип». */
-  columns: string[];
-  /** Колонки первичного ключа (для ON CONFLICT). */
-  pk: string[];
-}
-
 export const ELEMENT_TYPES: TableSpec = {
   table: 'element_types_read',
   pk: ['id'],
