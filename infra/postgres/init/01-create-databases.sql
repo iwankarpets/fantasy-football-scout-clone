@@ -2,3 +2,8 @@ CREATE DATABASE ingestion;
 CREATE DATABASE analytics;
 CREATE DATABASE users;
 CREATE DATABASE notification;
+
+
+\connect analytics
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS unaccent;

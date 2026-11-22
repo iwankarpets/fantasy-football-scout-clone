@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MessagingModule } from '@app/messaging';
 import configuration from './config/configuration';
+import { SyncModule } from './modules/sync/sync.module';
+import { PlayersModule } from './modules/players/players.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import configuration from './config/configuration';
         url: config.getOrThrow<string>('rabbitmq.url'),
       }),
     }),
+    PlayersModule,
+    SyncModule,
   ],
 })
 export class AppModule {}
