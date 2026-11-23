@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { defineEvent } from '../envelope';
 import { PLAYER_STATUS_CHANGED } from './events';
 
-export const PLAYER_STATUSES = ['a', 'd', 'i', 's', 'u'] as const;
+export const PLAYER_STATUSES = ['a', 'd', 'i', 's', 'u', 'n'] as const;
 
 export type PlayerStatus = (typeof PLAYER_STATUSES)[number];
 
