@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { PlayerSearchItemDto } from './player-search-item.dto';
+import { PlayerSearchItemDto } from './dto/player-search-item.dto';
+import { PlayerTopItemDto, Position, TopMetric } from './top-metrics';
 
 @Injectable()
 export class PlayersRepository {
@@ -37,6 +38,41 @@ export class PlayersRepository {
         LIMIT $2
       `,
       [term, limit],
+    );
+  }
+
+  async latestGameweek(): Promise<number | null> {
+    const rows = await this.ds.query('SELECT MAX(as_of_gameweek) AS gw FROM player_metrics');
+    return rows[0]?.gw ?? null;
+  }
+
+  /** metric подставляется в SQL, поэтому сюда попадает только значение из белого списка TOP_METRICS. */
+  top(
+    metric: TopMetric,
+    position: Position | undefined,
+    limit: number,
+    gameweek: number,
+  ): Promise<PlayerTopItemDto[]> {
+    return this.ds.query(
+      `SELECT p.id, p.web_name,
+            p.team AS team_id, t.short_name AS team_short_name,
+            et.singular_name_short AS position,
+            p.now_cost, p.status,
+            m.as_of_gameweek,
+            m.${metric}::float8 AS value,
+            m.score::float8 AS score,
+            m.position_rank
+       FROM player_metrics m
+       JOIN players_read p ON p.id = m.player_id
+       JOIN teams_read t ON t.id = p.team
+       JOIN element_types_read et ON et.id = p.element_type
+      WHERE m.as_of_gameweek = $1
+        AND ($2::text IS NULL OR et.singular_name_short = $2)
+        AND p.status <> 'u'
+        AND m.${metric} IS NOT NULL
+      ORDER BY m.${metric} DESC, p.id
+      LIMIT $3`,
+      [gameweek, position ?? null, limit],
     );
   }
 }

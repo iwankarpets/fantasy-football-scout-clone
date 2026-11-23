@@ -2,7 +2,8 @@ import { Controller, Get, ParseIntPipe, Query, UseGuards } from '@nestjs/common'
 import { ApiOperation, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { InternalApiKeyGuard } from '../../guards/internal-key.guard';
 import { PlayersService } from './players.service ';
-import { PlayerSearchItemDto } from './player-search-item.dto';
+import { PlayerSearchItemDto } from './dto/player-search-item.dto';
+import { PlayerTopResponseDto } from './top-metrics';
 
 @ApiTags('players')
 @ApiSecurity('internal-key')
@@ -30,5 +31,25 @@ export class PlayersController {
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ): Promise<PlayerSearchItemDto[]> {
     return this.service.search(q, limit);
+  }
+
+  @Get('top')
+  @ApiOperation({ summary: 'Top players by metric and position' })
+  @ApiQuery({ name: 'metric', required: false, enum: TOP_METRICS })
+  @ApiQuery({ name: 'position', required: false, enum: POSITIONS })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Default 10, max 50' })
+  @ApiQuery({
+    name: 'gameweek',
+    required: false,
+    type: Number,
+    description: 'Default: latest calculated',
+  })
+  top(
+    @Query('metric') metric?: string,
+    @Query('position') position?: string,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('gameweek', new ParseIntPipe({ optional: true })) gameweek?: number,
+  ): Promise<PlayerTopResponseDto> {
+    return this.service.top(metric, position, limit, gameweek);
   }
 }
