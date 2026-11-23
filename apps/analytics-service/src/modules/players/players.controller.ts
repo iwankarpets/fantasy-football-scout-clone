@@ -3,7 +3,7 @@ import { ApiOperation, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { InternalApiKeyGuard } from '../../guards/internal-key.guard';
 import { PlayersService } from './players.service ';
 import { PlayerSearchItemDto } from './dto/player-search-item.dto';
-import { PlayerTopResponseDto } from './top-metrics';
+import { PlayerTopResponseDto, POSITIONS, TOP_METRICS } from './top-metrics';
 
 @ApiTags('players')
 @ApiSecurity('internal-key')
