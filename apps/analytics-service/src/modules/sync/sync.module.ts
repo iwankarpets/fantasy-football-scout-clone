@@ -6,9 +6,10 @@ import { SnapshotReadyHandler } from './snapshot-ready.handler';
 import { SyncController } from './sync.controller';
 import { SyncService } from './sync.service';
 import { InternalApiKeyGuard } from '../../guards/internal-key.guard';
+import { FixturesModule } from '../fixtures/fixtures.module';
 
 @Module({
-  imports: [ConfigModule, MetricsModule],
+  imports: [ConfigModule, MetricsModule, FixturesModule],
   controllers: [SyncController],
   providers: [IngestionApiClient, InternalApiKeyGuard, SyncService, SnapshotReadyHandler],
   exports: [SyncService, SnapshotReadyHandler],
