@@ -22,6 +22,9 @@ export default () => ({
   userService: {
     baseUrl: process.env.USER_SERVICE_URL ?? 'http://localhost:3002',
   },
+  analyticsService: {
+    baseUrl: process.env.ANALYTICS_SERVICE_URL ?? 'http://localhost:3004',
+  },
   rateLimit: {
     windowSeconds: parseInt(process.env.RATE_LIMIT_WINDOW_SECONDS ?? '10', 10),
     maxCommands: parseInt(process.env.RATE_LIMIT_MAX_COMMANDS ?? '10', 10),

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SettingsView, StartUserInput, StartUserResult } from './user-api.interfaces';
+import { WatchlistChange, WatchlistItem } from '../analytics-api/analytics-api.types';
 
 export type UpdateSettingsInput = Partial<SettingsView>;
 
@@ -28,6 +29,16 @@ export class UserApiClient {
   /** Частичное обновление: передаются только изменяемые поля. Возвращает настройки целиком. */
   async updateSettings(userId: string, patch: UpdateSettingsInput): Promise<SettingsView> {
     return this.request<SettingsView>('PATCH', `/internal/users/${userId}/settings`, patch);
+  }
+
+  getWatchlist(userId: string): Promise<WatchlistItem[]> {
+    return this.request('GET', `/internal/users/${userId}/watchlist`);
+  }
+  addToWatchlist(userId: string, playerId: number): Promise<WatchlistChange> {
+    return this.request('PUT', `/internal/users/${userId}/watchlist/${playerId}`);
+  }
+  removeFromWatchlist(userId: string, playerId: number): Promise<WatchlistChange> {
+    return this.request('DELETE', `/internal/users/${userId}/watchlist/${playerId}`);
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
